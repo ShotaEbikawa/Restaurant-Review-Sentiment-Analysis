@@ -121,16 +121,17 @@ def main():
 
 
 def parse(rest_json):
-    business = rest_json.get('business')
-    print(business)
-    for bus in business:
+    businesses = rest_json.get('businesses')
+    for bus in businesses:
         print(bus)
-        restaurants.append(Restaurant.Restaurant(bus.get('id'),
-                                                 bus.get('name'),
-                                                 bus.get('rating'),
-                                                 bus.get('price'),
-                                                 []))
-    print(restaurants)
+        restaurant = Restaurant.Restaurant(
+            bus.get('id'),
+            bus.get('name'),
+            bus.get('rating'),
+            bus.get('price'),
+            []
+        )
+        restaurants.append(restaurant)
 
 
 if __name__ == '__main__':

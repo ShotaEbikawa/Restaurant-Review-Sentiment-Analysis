@@ -49,7 +49,7 @@ API_KEY = 'C6pC9w1vsH3y_YzWlB3j6aRAWxqmv4lVE4cS1FU1RSEKq6FnWojZf-s4izZ15vBIKXnLJ
 # API constants, you shouldn't have to change these.
 API_HOST = 'https://api.yelp.com'
 SEARCH_PATH = '/v3/businesses/search'
-BUSINESS_PATH = '/v3/businesses/'  # Business ID will come after slash.
+BUSINESS_PATH = '/v3/businesses/'
 
 
 # Defaults for our simple example.
@@ -96,6 +96,12 @@ def search(api_key, category, location, limit, offset):
     return request(API_HOST, SEARCH_PATH, api_key, url_params=url_params)
 
 
+def get_reviews(api_key, business_id):
+    reviews_path = BUSINESS_PATH + business_id + '/reviews'
+
+    return request(API_HOST, reviews_path, api_key)
+
+
 def get_business(api_key, business_id):
     business_path = BUSINESS_PATH + business_id
 
@@ -105,17 +111,8 @@ def get_business(api_key, business_id):
 def main():
     offset = 0
     while offset <= 1000:
-        try:
-            rest_json = search(API_KEY, DEFAULT_CATEGORY, DEFAULT_LOCATION, SEARCH_LIMIT, offset)
-            time.sleep(5)
-        except HTTPError as error:
-            sys.exit(
-                'Encountered HTTP error {0} on {1}:\n {2}\nAbort program.'.format(
-                    error.code,
-                    error.url,
-                    error.read(),
-                )
-            )
+        rest_json = search(API_KEY, DEFAULT_CATEGORY, DEFAULT_LOCATION, SEARCH_LIMIT, offset)
+        time.sleep(5)
         parse(rest_json)
         offset += 50
 
@@ -123,13 +120,22 @@ def main():
 def parse(rest_json):
     businesses = rest_json.get('businesses')
     for bus in businesses:
-        print(bus)
+        rev_list = []
+        reviews = get_reviews(API_KEY, bus.get('id')).get('reviews')
+        time.sleep(3)
+        for review in reviews:
+            rev = Restaurant.RestaurantReview(
+                review.get('rating'),
+                review.get('text')
+            )
+            rev_list.append(rev)
+
         restaurant = Restaurant.Restaurant(
             bus.get('id'),
             bus.get('name'),
             bus.get('rating'),
             bus.get('price'),
-            []
+            rev_list
         )
         restaurants.append(restaurant)
 

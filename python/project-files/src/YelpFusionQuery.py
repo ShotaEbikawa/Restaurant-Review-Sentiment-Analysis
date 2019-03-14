@@ -33,7 +33,7 @@ try:
     from urllib.parse import urlencode
 except ImportError:
     # Fall back to Python 2's urllib2 and urllib
-    from urllib2 import HTTPError
+    from urllib3 import HTTPError
     from urllib import quote
     from urllib import urlencode
 
@@ -110,35 +110,40 @@ def get_business(api_key, business_id):
 
 def main():
     offset = 0
-    while offset <= 1000:
+    while offset < 1000:
         rest_json = search(API_KEY, DEFAULT_CATEGORY, DEFAULT_LOCATION, SEARCH_LIMIT, offset)
-        time.sleep(5)
+        #time.sleep(5)
         parse(rest_json)
         offset += 50
 
 
 def parse(rest_json):
     businesses = rest_json.get('businesses')
-    for bus in businesses:
-        rev_list = []
-        reviews = get_reviews(API_KEY, bus.get('id')).get('reviews')
-        time.sleep(3)
-        for review in reviews:
-            rev = Restaurant.RestaurantReview(
-                review.get('rating'),
-                review.get('text')
+    if (businesses):
+        for bus in businesses:
+            rev_list = []
+            reviews = get_reviews(API_KEY, bus.get('id')).get('reviews')
+            #time.sleep(3)
+            if (reviews):
+                for review in reviews:
+                    rev = Restaurant.RestaurantReview(
+                        review.get('rating'),
+                        review.get('text')
+                    )
+                    rev_list.append(rev)
+            else:
+                pass
+            restaurant = Restaurant.Restaurant(
+                bus.get('id'),
+                bus.get('name'),
+                bus.get('rating'),
+                bus.get('price'),
+                rev_list
             )
-            rev_list.append(rev)
-
-        restaurant = Restaurant.Restaurant(
-            bus.get('id'),
-            bus.get('name'),
-            bus.get('rating'),
-            bus.get('price'),
-            rev_list
-        )
-        restaurants.append(restaurant)
-
+            restaurants.append(restaurant)
+            print('working')
+    else:
+        pass
 
 if __name__ == '__main__':
     main()

@@ -15,6 +15,7 @@ Sample usage of the program:
 from __future__ import print_function
 
 import Restaurant
+from Restaurant import RestaurantReview
 import argparse
 import json
 import pprint
@@ -115,7 +116,7 @@ def main():
         #time.sleep(5)
         parse(rest_json)
         offset += 50
-
+    print_json(restaurants)
 
 def parse(rest_json):
     businesses = rest_json.get('businesses')
@@ -141,9 +142,31 @@ def parse(rest_json):
                 rev_list
             )
             restaurants.append(restaurant)
-            print('working')
+            print(restaurant.id)
+            print(restaurant.name)
+            print(restaurant.rating)
+            print(restaurant.price)
+            for rev in rev_list:
+                print(rev.rating)
+                print(rev.text)
     else:
         pass
+
+
+def serialize_reviews(obj):
+   if isinstance(obj, RestaurantReview):
+       serial = obj.__dict__
+       return serial
+   else:
+       raise TypeError ("Type not serializable")
+
+def print_json(restaurants):
+    with open("restaurant-review.json", "w+",encoding="utf-8") as fp:
+        for restaurant in restaurants:
+            json.dump(restaurant.__dict__, fp, default=serialize_reviews)
+            fp.write(",")
+
+
 
 if __name__ == '__main__':
     main()

@@ -70,27 +70,37 @@ X = new_X
 # initialized BOW_Matrix, which stores fit and transformed X
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
-BOW_Vector = CountVectorizer(ngram_range=(1, 2), tokenizer=lambda doc: doc, lowercase=False, min_df = 0., max_df = 1.)
+from gensim.models import word2vec
+#from keras.preprocessing import text
+#tokenizer = text.Tokenizer()
+#tokenizer.fit_on_texts(X)
+#word2id = tokenizer.word_index
+#id2word = {v:k for k, v in word2id.items()}
+
+BOW_Vector = CountVectorizer(ngram_range=(1, 2), tokenizer=lambda doc: doc, lowercase=False, min_df = 0., max_df = 1., max_features = 728)
 BOW_Matrix = BOW_Vector.fit_transform(X)
 features = BOW_Vector.get_feature_names()
 BOW_Matrix = BOW_Matrix.toarray()
 BOW_df = pd.DataFrame(BOW_Matrix, columns = features)
-#tfidf = TfidfVectorizer()
-#X_tfidf = tfidf.fit_transform(X_train)
+#tfidf = TfidfVectorizer(ngram_range=(1,2), tokenizer=lambda doc: doc, lowercase=False, min_df = 0., max_df = 1.)
+#X_tfidf = tfidf.fit_transform(X)
 #features = tfidf.get_feature_names()
 #X_tfidf = X_tfidf.toarray()
 #X_df = pd.DataFrame(X_tfidf, columns = features)
 
+
+
 from sklearn.model_selection import train_test_split
 X_train, X_test, Y_train, Y_test = train_test_split(BOW_df, Y.ravel(), test_size = 0.25, random_state = 0)
 #X_train, X_test, Y_train, Y_test = train_test_split(X_df, Y.ravel(), test_size = 0.25, random_state = 0)
-
+#X_train, X_test, Y_train, Y_test = train_test_split(X_D2V, Y.ravel(), test_size = 0.25, random_state = 0)
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 multinomialNB = MultinomialNB()
 multinomialNB.fit(X_train, Y_train)
 y_pred = multinomialNB.predict(X_test)
-#randomForest = RandomForestClassifier(n_estimators = 300)
+#randomForest = RandomForestClassifier(n_estimators = 500)
 #randomForest.fit(X_train, Y_train)
 #y_pred = randomForest.predict(X_test)
 

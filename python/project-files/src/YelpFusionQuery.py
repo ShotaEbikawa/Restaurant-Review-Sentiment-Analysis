@@ -160,12 +160,12 @@ def serialize_reviews(obj):
    else:
        raise TypeError ("Type not serializable")
 
+
 def print_json(restaurants):
     with open("restaurant-review.json", "w+",encoding="utf-8") as fp:
         for restaurant in restaurants:
             json.dump(restaurant.__dict__, fp, default=serialize_reviews)
             fp.write(",")
-
 
 
 if __name__ == '__main__':

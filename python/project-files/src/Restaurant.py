@@ -1,4 +1,4 @@
-class Restaurant:
+class Restaurant(object):
     """
     Args:
         id (str): The business id.
@@ -15,7 +15,7 @@ class Restaurant:
         self.reviews = reviews
 
 
-class RestaurantReview:
+class RestaurantReview(object):
     """
     Args:
         rating (float): The given rating by the user review.

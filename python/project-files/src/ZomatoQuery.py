@@ -13,6 +13,10 @@ import time
 
 API_KEY = 'bb29578461d9b138f0ff1694e5c254e3'
 
+# [San Francisco, South San Francisco, Oakland, San Jose, Daly City]
+city_ids = [306, 10854, 10773, 10883, 10841]
+orders = ['asc', 'desc']
+
 restaurants = []
 
 
@@ -165,14 +169,21 @@ class ZomatoQuery(object):
 
 
 def main():
-    # Zomato query
     z = ZomatoQuery(API_KEY)
-    offset = 0
-    while offset < 100:
-        # entity_id = 306 is 'San Francisco'
-        zomato_json = z.search(entity_id=306, start=offset, count=20)
-        z_parse(z, zomato_json)
-        offset += 20
+    for order in orders:
+        for city_id in city_ids:
+            offset = 0
+            while offset < 100:
+                zomato_json = z.search(
+                    entity_id=city_id,
+                    entity_type='city',
+                    start=offset,
+                    count=20,
+                    sort='rating',
+                    order=order
+                )
+                z_parse(z, zomato_json)
+                offset += 20
     print_json(restaurants)
 
 
@@ -215,7 +226,7 @@ def serialize_reviews(obj):
 
 
 def print_json(rests):
-    with open("restaurant-review-zomato.json", "w+", encoding="utf-8") as fp:
+    with open("restaurant-review-zomato-4.json", "w+", encoding="utf-8") as fp:
         for restaurant in rests:
             json.dump(restaurant.__dict__, fp, default=serialize_reviews)
             fp.write(",")

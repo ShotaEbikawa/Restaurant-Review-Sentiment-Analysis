@@ -1,28 +1,31 @@
 # -*- coding: utf-8
 import pandas as pd
-import matplotlib as lib
-import numpy as np
-import re
-from copy import deepcopy
-from string import punctuation
-from random import shuffle
-from gensim.models.word2vec import Word2Vec
-from tqdm import tqdm 
+#import matplotlib as lib
+#import numpy as np
+#import re
+#from copy import deepcopy
+#from string import punctuation
+#from random import shuffle
+#from gensim.models.word2vec import Word2Vec
+#from tqdm import tqdm 
 from sklearn import preprocessing
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.preprocessing import LabelBinarizer
+#from sklearn.preprocessing import OneHotEncoder
+#from sklearn.preprocessing import LabelBinarizer
 import nltk
+nltk.download('stopwords')
+nltk.download('punkt')
+nltk.download('wordnet')
 from nltk.stem import WordNetLemmatizer
-from nltk.stem import PorterStemmer
+#from nltk.stem import PorterStemmer
 from nltk.stem.snowball import SnowballStemmer
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
-from gensim.models import word2vec
+#from gensim.models import word2vec
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.naive_bayes import BernoulliNB
+#from sklearn.naive_bayes import BernoulliNB
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import GridSearchCV
+#from sklearn.model_selection import GridSearchCV
 from sklearn import svm
 from sklearn.model_selection import KFold,cross_val_score
 from sklearn.model_selection import train_test_split
@@ -77,7 +80,7 @@ def featuring(X, feature_name):
     if (feature_name == 'TFIDF'): 
         tfidf = TfidfVectorizer(ngram_range=(1,2), lowercase = False, 
                                 analyzer = 'word',tokenizer= lambda doc: doc, 
-                                min_df = 0, max_df = 0.8,max_features = 5581)
+                                min_df = 0, max_df = 0.8,max_features = 475)
         X_tfidf = tfidf.fit_transform(X)
         features = tfidf.get_feature_names()
         X_tfidf = X_tfidf.toarray()
@@ -130,7 +133,7 @@ def crossValidate(classifier, X, Y):
 
     
 def produceSentiment(column_name, test_Y):
-    file_name = pd.read_json(r"C:\Users\shota\Desktop\Yelp-Sentiment-Analysis\python\project-files\src\dummy-review.json")
+#    file_name = pd.read_json("src\dummy-review.json")
     i = 0
     j = 1
     k = 2
@@ -180,7 +183,23 @@ def labelEncoder(Y):
     return Y
 
 
+def class_distribution(Y):
+    class_dist = {}
+    
+    for values in Y.values:
+        for value in values:
+            if value in class_dist:
+                class_dist[value] += 1
+            else:
+                class_dist[value] = 1
+            
+    max_label = max(class_dist, key=class_dist.get)
+    max_value = max(class_dist.values())
 
+    total_values = sum(class_dist.values())
+    percentage = max_value / total_values
+    
+    return (max_label, max_value, total_values, percentage)
 
 
 data = pd.read_json('src/restaurant-review.json')
@@ -201,6 +220,8 @@ restaurant_labeled = restaurant_labeled[pd.notnull(restaurant_labeled['sentences
 # Y stores the positive/negative label of the dataset
 X = restaurant_labeled.iloc[1:, 3:4]
 Y = restaurant_labeled.iloc[1:, 11:12]
+
+class_dist = class_distribution(Y)
 
 X = preprocessing(X)
 X = featuring(X, 'TFIDF')

@@ -227,23 +227,41 @@ def evaluateCM(y_pred, Y_test):
     print("The recall is: ", avg_recall*100, "%")
     print("The f1 score is: ", f1*100, "%")
     
-def class_distribution(Y):
-    class_dist = {}
+def get_majority_classifier(Y):
+    classifiers = {}
     
     for values in Y.values:
         for value in values:
-            if value in class_dist:
-                class_dist[value] += 1
+            if value in classifiers:
+                classifiers[value] += 1
             else:
-                class_dist[value] = 1
+                classifiers[value] = 1
             
-    max_label = max(class_dist, key=class_dist.get)
-    max_value = max(class_dist.values())
+    max_label = max(classifiers, key=classifiers.get)
+    max_value = max(classifiers.values())
 
-    total_values = sum(class_dist.values())
+    total_values = sum(classifiers.values())
     percentage = max_value / total_values
     
     return (max_label, max_value, total_values, percentage)
+
+def get_class_distribution(Y):
+    classifiers = {}
+    
+    for values in Y.values:
+        for value in values:
+            if value in classifiers:
+                classifiers[value] += 1
+            else:
+                classifiers[value] = 1
+    
+    total_values = sum(classifiers.values())
+    
+    class_dist = {}
+    for key, value in classifiers.items():
+        class_dist[key] = value / total_values
+    
+    return class_dist
 
 
 data = pd.read_json('src/restaurant-review.json')
@@ -258,14 +276,15 @@ restaurant_labeled = restaurant_labeled[pd.notnull(restaurant_labeled['sentences
 #restaurant_labeled = restaurant_labeled[restaurant_labeled['sentences__Opinions__Opinion__category'].str.contains('SERVICE')]
 # we will ignore all the row that contains 'neutral' in the positive/negative column
 # because we don't need additional label in our dataset
-restaurant_labeled = restaurant_labeled[restaurant_labeled['sentences__Opinions__Opinion__polarity'] != 'neutral']
+#restaurant_labeled = restaurant_labeled[restaurant_labeled['sentences__Opinions__Opinion__polarity'] != 'neutral']
 
 # X stores the text review column of the dataset
 # Y stores the positive/negative label of the dataset
 X = restaurant_labeled.iloc[1:, 3:4]
 Y = restaurant_labeled.iloc[1:, 11:12]
 
-class_dist = class_distribution(Y)
+majority_classifier = get_majority_classifier(Y)
+class_distribution = get_class_distribution(Y)
 
 X = preprocessing(X)
 X = featuring(X, 'TFIDF')

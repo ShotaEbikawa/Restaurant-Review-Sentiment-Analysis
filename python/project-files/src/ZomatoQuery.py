@@ -11,7 +11,7 @@ import urllib
 import time
 
 
-API_KEY = 'bb29578461d9b138f0ff1694e5c254e3'
+API_KEYS = ['bb29578461d9b138f0ff1694e5c254e3', 'd5ee4dd0e5aa0f7d1f720d5b17876f11']
 
 # [San Francisco, South San Francisco, Oakland, San Jose, Daly City]
 city_ids = [306, 10854, 10773, 10883, 10841]
@@ -169,8 +169,13 @@ class ZomatoQuery(object):
 
 
 def main():
-    z = ZomatoQuery(API_KEY)
     for order in orders:
+        if order == 'asc':
+            api_key = API_KEYS[0]
+        else:
+            api_key = API_KEYS[1]
+        z = ZomatoQuery(api_key)
+
         for city_id in city_ids:
             offset = 0
             while offset < 100:
@@ -184,6 +189,7 @@ def main():
                 )
                 z_parse(z, zomato_json)
                 offset += 20
+
     print_json(restaurants)
 
 
@@ -226,7 +232,7 @@ def serialize_reviews(obj):
 
 
 def print_json(rests):
-    with open("restaurant-review-zomato-4.json", "w+", encoding="utf-8") as fp:
+    with open("restaurant-review-zomato-5.json", "w+", encoding="utf-8") as fp:
         for restaurant in rests:
             json.dump(restaurant.__dict__, fp, default=serialize_reviews)
             fp.write(",")

@@ -258,7 +258,7 @@ restaurant_labeled = restaurant_labeled[pd.notnull(restaurant_labeled['sentences
 #restaurant_labeled = restaurant_labeled[restaurant_labeled['sentences__Opinions__Opinion__category'].str.contains('SERVICE')]
 # we will ignore all the row that contains 'neutral' in the positive/negative column
 # because we don't need additional label in our dataset
-#restaurant_labeled = restaurant_labeled[restaurant_labeled['sentences__Opinions__Opinion__polarity'] != 'neutral']
+restaurant_labeled = restaurant_labeled[restaurant_labeled['sentences__Opinions__Opinion__polarity'] != 'neutral']
 
 # X stores the text review column of the dataset
 # Y stores the positive/negative label of the dataset

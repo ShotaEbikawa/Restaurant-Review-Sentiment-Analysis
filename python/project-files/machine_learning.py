@@ -12,9 +12,9 @@ from sklearn import preprocessing
 #from sklearn.preprocessing import OneHotEncoder
 #from sklearn.preprocessing import LabelBinarizer
 import nltk
-nltk.download('stopwords')
-nltk.download('punkt')
-nltk.download('wordnet')
+#nltk.download('stopwords')
+#nltk.download('punkt')
+#nltk.download('wordnet')
 from nltk.stem import WordNetLemmatizer
 #from nltk.stem import PorterStemmer
 from nltk.stem.snowball import SnowballStemmer
@@ -227,6 +227,21 @@ def evaluateCM(y_pred, Y_test):
     print("The recall is: ", avg_recall*100, "%")
     print("The f1 score is: ", f1*100, "%")
     
+    
+def evaluate2CM(y_pred, Y_test):
+    cm = confusion_matrix(y_pred, Y_test)
+    tn, fp, fn, tp = cm.ravel()
+    total = tn + tp + fn + fp
+    accuracy = (tp + tn) / (total)
+    precision = tp / (tp + fp)
+    recall = tp / (tp + fn)
+    f1 = (2 * precision * recall) / (precision + recall)
+    print('accuracy: ', accuracy, '\n')
+    print('precision: ', precision, '\n' )
+    print('recall', recall, '\n')
+    print('f1 score: ', f1, '\n')
+    
+    
 def get_majority_classifier(Y):
     classifiers = {}
     
@@ -294,7 +309,7 @@ X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.25, rand
 clf = classifier('LinearSVC', X_train, Y_train)
 y_pred = list(clf.predict(X_test))
 printAccuracy(y_pred,Y_test)
-evaluateCM(y_pred, Y_test)
+evaluate2CM(y_pred, Y_test)
 
 #test_data = pd.read_csv('src/restaurant-review.csv')
 #test_X = test_data.iloc[:,-1]

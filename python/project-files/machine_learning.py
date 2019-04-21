@@ -77,7 +77,7 @@ def preprocessing(X):
 
 def featuring(X, feature_name):
     if (feature_name == 'BOW'):
-        BOW_Vector = CountVectorizer(ngram_range=(1, 2), tokenizer=lambda doc: doc,
+        BOW_Vector = CountVectorizer(ngram_range=(1, 3), tokenizer=lambda doc: doc,
                                      lowercase=False, min_df = 0., max_df = 1., max_features = 5581)
         BOW_Matrix = BOW_Vector.fit_transform(X)
         features = BOW_Vector.get_feature_names()
@@ -118,7 +118,7 @@ def classifier(classifier_name, X_train, Y_train):
         return Logistic
     
     elif (classifier_name == 'LinearSVC'):
-        clf = svm.LinearSVC(multi_class='ovr')
+        clf = svm.LinearSVC(multi_class='crammer_singer')
         clf.fit(X_train, Y_train) 
         return clf
         

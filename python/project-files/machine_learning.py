@@ -112,7 +112,7 @@ def classifier(classifier_name, X_train, Y_train):
         y_pred = randomForest.predict(X_test)
         return randomForest
     
-    elif (classifier_name == 'LogicticRegression'):
+    elif (classifier_name == 'LogisticRegression'):
         Logistic = LogisticRegression()
         Logistic.fit(X_train, Y_train)
         return Logistic
@@ -288,6 +288,7 @@ class_distribution = get_class_distribution(Y)
 
 X = preprocessing(X)
 X = featuring(X, 'TFIDF')
+
 crossValidate = crossValidate('LinearSVC', X, Y)
 #X_train, X_test, Y_train, Y_test = train_test_split(BOW_df, Y, test_size = 0.25, random_state = 0)
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.25, random_state = 0)

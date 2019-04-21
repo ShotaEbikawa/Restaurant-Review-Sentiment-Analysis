@@ -12,9 +12,9 @@ from sklearn import preprocessing
 #from sklearn.preprocessing import OneHotEncoder
 #from sklearn.preprocessing import LabelBinarizer
 import nltk
-nltk.download('stopwords')
-nltk.download('punkt')
-nltk.download('wordnet')
+#nltk.download('stopwords')
+#nltk.download('punkt')
+#nltk.download('wordnet')
 from nltk.stem import WordNetLemmatizer
 #from nltk.stem import PorterStemmer
 from nltk.stem.snowball import SnowballStemmer
@@ -77,7 +77,7 @@ def preprocessing(X):
 
 def featuring(X, feature_name):
     if (feature_name == 'BOW'):
-        BOW_Vector = CountVectorizer(ngram_range=(1, 2), tokenizer=lambda doc: doc,
+        BOW_Vector = CountVectorizer(ngram_range=(1, 3), tokenizer=lambda doc: doc,
                                      lowercase=False, min_df = 0., max_df = 1., max_features = 5581)
         BOW_Matrix = BOW_Vector.fit_transform(X)
         features = BOW_Vector.get_feature_names()
@@ -118,7 +118,7 @@ def classifier(classifier_name, X_train, Y_train):
         return Logistic
     
     elif (classifier_name == 'LinearSVC'):
-        clf = svm.LinearSVC(multi_class='ovr')
+        clf = svm.LinearSVC(multi_class='crammer_singer')
         clf.fit(X_train, Y_train) 
         return clf
         
@@ -227,6 +227,21 @@ def evaluateCM(y_pred, Y_test):
     print("The recall is: ", avg_recall*100, "%")
     print("The f1 score is: ", f1*100, "%")
     
+    
+def evaluate2CM(y_pred, Y_test):
+    cm = confusion_matrix(y_pred, Y_test)
+    tn, fp, fn, tp = cm.ravel()
+    total = tn + tp + fn + fp
+    accuracy = (tp + tn) / (total)
+    precision = tp / (tp + fp)
+    recall = tp / (tp + fn)
+    f1 = (2 * precision * recall) / (precision + recall)
+    print('accuracy: ', accuracy, '\n')
+    print('precision: ', precision, '\n' )
+    print('recall', recall, '\n')
+    print('f1 score: ', f1, '\n')
+    
+    
 def get_majority_classifier(Y):
     classifiers = {}
     
@@ -276,7 +291,7 @@ restaurant_labeled = restaurant_labeled[pd.notnull(restaurant_labeled['sentences
 #restaurant_labeled = restaurant_labeled[restaurant_labeled['sentences__Opinions__Opinion__category'].str.contains('SERVICE')]
 # we will ignore all the row that contains 'neutral' in the positive/negative column
 # because we don't need additional label in our dataset
-#restaurant_labeled = restaurant_labeled[restaurant_labeled['sentences__Opinions__Opinion__polarity'] != 'neutral']
+restaurant_labeled = restaurant_labeled[restaurant_labeled['sentences__Opinions__Opinion__polarity'] != 'neutral']
 
 # X stores the text review column of the dataset
 # Y stores the positive/negative label of the dataset
@@ -295,7 +310,7 @@ X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.25, rand
 clf = classifier('LinearSVC', X_train, Y_train)
 y_pred = list(clf.predict(X_test))
 printAccuracy(y_pred,Y_test)
-evaluateCM(y_pred, Y_test)
+evaluate2CM(y_pred, Y_test)
 
 #test_data = pd.read_csv('src/restaurant-review.csv')
 #test_X = test_data.iloc[:,-1]

@@ -8,6 +8,7 @@ Created on Sat Apr 20 15:48:41 2019
 
 from sklearn.base import BaseEstimator, TransformerMixin
 
+
 class AverageWordLengthExtractor(BaseEstimator, TransformerMixin):
     """Takes in dataframe, extracts road name column, outputs average word length"""
 

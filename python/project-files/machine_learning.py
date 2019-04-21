@@ -29,17 +29,13 @@ from sklearn.linear_model import LogisticRegression
 from sklearn import svm
 from sklearn.model_selection import KFold,cross_val_score
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-from sklearn.metrics import confusion_matrix
-
-
-
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 
 def preprocessing(X):
     real_token = []
     stop_words = nltk.corpus.stopwords.words('english')
     punctuation =  [',','-','+','.','/','\\','\'','"','?','!','$','(',')','...',
-                    '..', '--', '---',':','~','=','`','{','}','\n']
+                    '..', '--', '---',':','~','=','`','{','}','\n', ',']
     # new_X(which is a list) stores real_token
     new_X = []
     y = ''
@@ -85,9 +81,9 @@ def featuring(X, feature_name):
         BOW_df = pd.DataFrame(BOW_Matrix, columns = features)
         return BOW_df
     if (feature_name == 'TFIDF'): 
-        tfidf = TfidfVectorizer(ngram_range=(1,2), lowercase = False, 
-                                analyzer = 'word',tokenizer= lambda doc: doc, 
-                                min_df = 0, max_df = 0.8,max_features = 475)
+        tfidf = TfidfVectorizer(ngram_range=(1,2), lowercase=False, 
+                                analyzer = 'word', tokenizer=lambda doc: doc, 
+                                min_df=0., max_df=1.)
         X_tfidf = tfidf.fit_transform(X)
         features = tfidf.get_feature_names()
         X_tfidf = X_tfidf.toarray()
@@ -230,16 +226,26 @@ def evaluateCM(y_pred, Y_test):
     
 def evaluate2CM(y_pred, Y_test):
     cm = confusion_matrix(y_pred, Y_test)
+    print ('Confusion Matrix:\n', cm)
+    
     tn, fp, fn, tp = cm.ravel()
     total = tn + tp + fn + fp
+    
     accuracy = (tp + tn) / (total)
     precision = tp / (tp + fp)
     recall = tp / (tp + fn)
     f1 = (2 * precision * recall) / (precision + recall)
-    print('accuracy: ', accuracy, '\n')
-    print('precision: ', precision, '\n' )
-    print('recall', recall, '\n')
-    print('f1 score: ', f1, '\n')
+    
+    print('Accuracy is ', round(accuracy * 100, 2), '%')
+    print('Precision is ', round(precision, 2))
+    print('Recall is ', round(recall, 2))
+    print('f1 score is ', round(f1, 2))
+    
+    
+def evaluate(y_pred, Y_test):
+    print('Accuracy:\n', accuracy_score(Y_test, y_pred))
+    print('Confusion Matrix:\n', confusion_matrix(Y_test, y_pred))
+    print(classification_report(Y_test, y_pred))
     
     
 def get_majority_classifier(Y):
@@ -259,6 +265,7 @@ def get_majority_classifier(Y):
     percentage = max_value / total_values
     
     return (max_label, max_value, total_values, percentage)
+
 
 def get_class_distribution(Y):
     classifiers = {}
@@ -281,6 +288,9 @@ def get_class_distribution(Y):
 
 data = pd.read_json('src/restaurant-review.json')
 restaurant_labeled = pd.read_csv('restaurant-review-labeled-data.csv', dtype=str)
+
+yelp_data = pd.read_json('yelp_training_set_review.json', lines=True)
+
 # line 9 and 10 removes
 # the row with nan, or the row with null values
 # in the dataset
@@ -295,8 +305,28 @@ restaurant_labeled = restaurant_labeled[restaurant_labeled['sentences__Opinions_
 
 # X stores the text review column of the dataset
 # Y stores the positive/negative label of the dataset
-X = restaurant_labeled.iloc[1:, 3:4]
-Y = restaurant_labeled.iloc[1:, 11:12]
+#X = restaurant_labeled.iloc[1:, 3:4]
+#Y = restaurant_labeled.iloc[1:, 11:12]
+
+yelp_data1 = yelp_data[(yelp_data['stars'] == 1)]
+yelp_data3 = yelp_data[(yelp_data['stars'] == 3)]
+yelp_data5 = yelp_data[(yelp_data['stars'] == 5)]
+
+X1 = yelp_data1.iloc[1:, 4:5]
+X1 = X1[:2000]
+X3 = yelp_data3.iloc[1:, 4:5]
+X3 = X3[:2000]
+X5 = yelp_data5.iloc[1:, 4:5]
+X5 = X5[:2000]
+X = pd.concat([X1, X3, X5])
+
+Y1 = yelp_data1.iloc[1:, 3:4]
+Y1 = Y1[:2000]
+Y3 = yelp_data3.iloc[1:, 3:4]
+Y3 = Y3[:2000]
+Y5 = yelp_data5.iloc[1:, 3:4]
+Y5 = Y5[:2000]
+Y = pd.concat([Y1, Y3, Y5])
 
 majority_classifier = get_majority_classifier(Y)
 class_distribution = get_class_distribution(Y)
@@ -305,12 +335,12 @@ X = preprocessing(X)
 X = featuring(X, 'TFIDF')
 
 crossValidate = crossValidate('LinearSVC', X, Y)
-#X_train, X_test, Y_train, Y_test = train_test_split(BOW_df, Y, test_size = 0.25, random_state = 0)
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.25, random_state = 0)
 clf = classifier('LinearSVC', X_train, Y_train)
 y_pred = list(clf.predict(X_test))
-printAccuracy(y_pred,Y_test)
-evaluate2CM(y_pred, Y_test)
+#evaluate2CM(y_pred, Y_test)
+evaluate(y_pred, Y_test)
+
 
 #test_data = pd.read_csv('src/restaurant-review.csv')
 #test_X = test_data.iloc[:,-1]

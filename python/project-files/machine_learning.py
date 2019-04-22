@@ -1,7 +1,8 @@
 # -*- coding: utf-8
+import re
 import pandas as pd
 #import matplotlib as lib
-#import numpy as np
+import numpy as np
 #import re
 #from copy import deepcopy
 #from string import punctuation
@@ -19,7 +20,7 @@ from nltk.stem import WordNetLemmatizer
 #from nltk.stem import PorterStemmer
 from nltk.stem.snowball import SnowballStemmer
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, TfidfTransformer
 #from gensim.models import word2vec
 from sklearn.naive_bayes import MultinomialNB
 #from sklearn.naive_bayes import BernoulliNB
@@ -28,8 +29,13 @@ from sklearn.linear_model import LogisticRegression
 #from sklearn.model_selection import GridSearchCV
 from sklearn import svm
 from sklearn.model_selection import KFold,cross_val_score
+from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
+from Extractors import AverageWordLengthExtractor, ItemSelector
+
+lemmatizer = WordNetLemmatizer()
+
 
 def preprocessing(X):
     real_token = []
@@ -69,6 +75,10 @@ def preprocessing(X):
     # reinitialize X to new_X
     X = new_X
     return X
+
+
+def pre_process(s):
+    pass
     
 
 def featuring(X, feature_name):
@@ -119,7 +129,7 @@ def classifier(classifier_name, X_train, Y_train):
         return clf
         
 def crossValidate(classifier, X, Y):
-    k_fold = KFold(n_splits=10, shuffle= True)
+    k_fold = KFold(n_splits=10, shuffle=True)
     if (classifier == 'LinearSVC'):
         clf = svm.LinearSVC(multi_class='ovr')
         cross_v_tdidf = cross_val_score(clf, X, Y, cv=k_fold, n_jobs=1)
@@ -264,7 +274,7 @@ def get_majority_classifier(Y):
     total_values = sum(classifiers.values())
     percentage = max_value / total_values
     
-    return (max_label, max_value, total_values, percentage)
+    return max_label, max_value, total_values, percentage
 
 
 def get_class_distribution(Y):
@@ -312,35 +322,75 @@ yelp_data1 = yelp_data[(yelp_data['stars'] == 1)]
 yelp_data3 = yelp_data[(yelp_data['stars'] == 3)]
 yelp_data5 = yelp_data[(yelp_data['stars'] == 5)]
 
+num_samples = 4000
+
 X1 = yelp_data1.iloc[1:, 4:5]
-X1 = X1[:2000]
+X1 = X1.sample(n=num_samples)
 X3 = yelp_data3.iloc[1:, 4:5]
-X3 = X3[:2000]
+X3 = X3.sample(n=num_samples)
 X5 = yelp_data5.iloc[1:, 4:5]
-X5 = X5[:2000]
+X5 = X5.sample(n=num_samples)
 X = pd.concat([X1, X3, X5])
 
 Y1 = yelp_data1.iloc[1:, 3:4]
-Y1 = Y1[:2000]
+Y1 = Y1.sample(n=num_samples)
 Y3 = yelp_data3.iloc[1:, 3:4]
-Y3 = Y3[:2000]
+Y3 = Y3.sample(n=num_samples)
 Y5 = yelp_data5.iloc[1:, 3:4]
-Y5 = Y5[:2000]
+Y5 = Y5.sample(n=num_samples)
 Y = pd.concat([Y1, Y3, Y5])
 
 majority_classifier = get_majority_classifier(Y)
 class_distribution = get_class_distribution(Y)
+#crossValidate = crossValidate('LinearSVC', X, Y)
 
-X = preprocessing(X)
-X = featuring(X, 'TFIDF')
+#XX = X[['text','stars']]
 
-crossValidate = crossValidate('LinearSVC', X, Y)
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.25, random_state = 0)
-clf = classifier('LinearSVC', X_train, Y_train)
-y_pred = list(clf.predict(X_test))
-#evaluate2CM(y_pred, Y_test)
+# Gets all rows from the 'text' column in DataFrame (as a Series object type)
+#X = X['text']
+
+#X = featuring(X, 'TFIDF')
+
+#crossValidate = crossValidate('LinearSVC', X, Y)
+#X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.25, random_state = 0)
+#clf = classifier('LinearSVC', X_train, Y_train)
+#y_pred = list(clf.predict(X_test))
+#evaluate(y_pred, Y_test)
+
+# Features for pipeline
+tfidf = TfidfVectorizer(ngram_range=(1,2), stop_words='english',
+                        min_df=0., max_df=1.)
+ave = AverageWordLengthExtractor()
+
+# Classifier for pipeline
+svc = svm.LinearSVC(multi_class='crammer_singer')
+
+pipeline_one = Pipeline([
+        ('selector', ItemSelector(key='text')),
+        ('tfidf', tfidf)
+])
+        
+pipeline_two = Pipeline([
+        ('selector', ItemSelector(key='text')),
+        ('ave', ave)
+])       
+        
+feature_pipeline = FeatureUnion([
+        ('one', pipeline_one),
+        ('two', pipeline_two)
+])
+        
+pipeline = Pipeline([
+    ('features', feature_pipeline),
+    ('classifier', svc)
+])
+        
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.25, random_state=0)
+
+pipeline.fit(X_train, Y_train)
+
+y_pred = pipeline.predict(X_test)
 evaluate(y_pred, Y_test)
-
 
 #test_data = pd.read_csv('src/restaurant-review.csv')
 #test_X = test_data.iloc[:,-1]

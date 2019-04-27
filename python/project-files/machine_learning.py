@@ -1,7 +1,7 @@
 # -*- coding: utf-8
 import re
 import pandas as pd
-#import matplotlib as lib
+import matplotlib.pyplot as plt
 import numpy as np
 #import re
 #from copy import deepcopy
@@ -318,30 +318,70 @@ restaurant_labeled = restaurant_labeled[restaurant_labeled['sentences__Opinions_
 #X = restaurant_labeled.iloc[1:, 3:4]
 #Y = restaurant_labeled.iloc[1:, 11:12]
 
+
+
+#========================================================================
+# THIS IS WHERE I INCLUDED KMEANS PIPELINE
+#========================================================================
+
+
 yelp_data1 = yelp_data[(yelp_data['stars'] == 1)]
+yelp_data2 = yelp_data[(yelp_data['stars'] == 2)]
 yelp_data3 = yelp_data[(yelp_data['stars'] == 3)]
+yelp_data4 = yelp_data[(yelp_data['stars'] == 4)]
 yelp_data5 = yelp_data[(yelp_data['stars'] == 5)]
 
-num_samples = 4000
-
+#yelp_data_all_x = yelp_data.iloc[1:, 4:5]
+#yelp_data_all_y = yelp_data.iloc[1:, 3:4]
+num_samples = 3000
+#
 X1 = yelp_data1.iloc[1:, 4:5]
 X1 = X1.sample(n=num_samples)
+X2 = yelp_data2.iloc[1:, 4:5]
+X2 = X2.sample(n=num_samples)
 X3 = yelp_data3.iloc[1:, 4:5]
 X3 = X3.sample(n=num_samples)
+X4 = yelp_data4.iloc[1:, 4:5]
+X4 = X4.sample(n=num_samples)
 X5 = yelp_data5.iloc[1:, 4:5]
 X5 = X5.sample(n=num_samples)
-X = pd.concat([X1, X3, X5])
+X = pd.concat([X1, X2, X3, X4, X5])
 
 Y1 = yelp_data1.iloc[1:, 3:4]
 Y1 = Y1.sample(n=num_samples)
+Y2 = yelp_data2.iloc[1:, 3:4]
+Y2 = Y2.sample(n=num_samples)
 Y3 = yelp_data3.iloc[1:, 3:4]
 Y3 = Y3.sample(n=num_samples)
+Y4 = yelp_data4.iloc[1:, 3:4]
+Y4 = Y4.sample(n=num_samples)
 Y5 = yelp_data5.iloc[1:, 3:4]
 Y5 = Y5.sample(n=num_samples)
-Y = pd.concat([Y1, Y3, Y5])
+Y = pd.concat([Y1, Y2, Y3, Y4, Y5])
 
 majority_classifier = get_majority_classifier(Y)
 class_distribution = get_class_distribution(Y)
+
+from sklearn.cluster import KMeans as Kmeans
+kmeans = Kmeans(n_clusters=3)
+
+tfidf = TfidfVectorizer(ngram_range=(1,2), stop_words='english',
+                        min_df=0., max_df=1.)
+
+
+pipeline_kmeans = Pipeline([
+        ('selector', ItemSelector(key='text')),
+        ('tfidf', tfidf)])
+        
+real_pipeline = Pipeline([
+        ('features', pipeline_kmeans),
+        ('classifier', kmeans)])
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.25, random_state=0)        
+real_pipeline.fit(X_train)
+y_pred = real_pipeline.predict(X_test)
+plt.figure(figsize=(30,30))
+plt.scatter(X_test.index, y_pred)
+evaluate(y_pred, Y_test)
 #crossValidate = crossValidate('LinearSVC', X, Y)
 
 #XX = X[['text','stars']]
@@ -390,7 +430,7 @@ X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.25, random
 pipeline.fit(X_train, Y_train)
 
 y_pred = pipeline.predict(X_test)
-evaluate(y_pred, Y_test)
+
 
 #test_data = pd.read_csv('src/restaurant-review.csv')
 #test_X = test_data.iloc[:,-1]

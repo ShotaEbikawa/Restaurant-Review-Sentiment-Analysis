@@ -264,6 +264,8 @@ violation_reviews = violation_reviews[violation_reviews['Violation_Number'] != '
 
 for i in range(1, 67):
     if i <= 9:
+        #0 refers to service
+        #1 refers to food quality
         violation_reviews.Violation_Number[violation_reviews.Violation_Number == str(i)] = 0
     elif (10 <= i <= 22):
         violation_reviews.Violation_Number[violation_reviews.Violation_Number == str(i)] = 1
@@ -303,7 +305,7 @@ ave = AverageWordLengthExtractor()
 svc = svm.LinearSVC(multi_class='ovr')
 
 pipeline_one = Pipeline([
-        ('selector', ItemSelector(key='Violation_Text')),
+        ('selector', ItemSelector(key='text')),
         ('tfidf', tfidf)
 ])
         
@@ -326,4 +328,17 @@ X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.25, random
 pipeline.fit(X_train, Y_train)
 y_pred = pipeline.predict(X_test)
 evaluate(y_pred, Y_test)
+
+
+# =============================================================================
+# NOW I'M GOING TO PREDICT THE YELP_DATA WITH THE PIPELINE
+# =============================================================================
+
+yelp_data = pd.read_json('yelp_training_set_review.json', lines=True)
+X2 = yelp_data.iloc[1:, 4:5]
+Y2 = yelp_data.iloc[1:, 3:4]
+X2_train, X2_test, Y2_train, Y2_test = train_test_split(X2, Y2, test_size=0.25, random_state=0)
+y_pred2 = pipeline.predict(X2_test)
+
+
 

@@ -4,7 +4,7 @@ import re
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-
+from sklearn.preprocessing import StandardScaler
 from sklearn import preprocessing
 import nltk
 import scipy.sparse
@@ -24,7 +24,7 @@ from sklearn.model_selection import KFold,cross_val_score
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
-from Extractors import AverageWordLengthExtractor, ColumnSelector
+from Extractors import AverageWordLengthExtractor, ColumnSelector, ClfSwitcher
 from sklearn.cluster import KMeans as Kmeans
 from sklearn.cluster import SpectralClustering as Spectral
 from sklearn.cluster import AgglomerativeClustering
@@ -32,7 +32,9 @@ from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.decomposition import IncrementalPCA
 from sklearn.decomposition import TruncatedSVD
-import json
+#import json
+from sklearn.model_selection import GridSearchCV
+from sklearn import svm
 def pre_process(s):
     pass
 
@@ -330,31 +332,90 @@ foodY = foodY.sample(n= 10000)
 X = pd.concat([serviceX, foodX])
 Y = pd.concat([serviceY, foodY])
 Y = Y['Violation_Number'].astype(int)
-#X = preprocessing(X)
-#wordX = Word2Vec(X)
+
 tfidf = TfidfVectorizer(ngram_range=(1,2), stop_words='english',
                       min_df=0., max_df=1.)
-#ave = AverageWordLengthExtractor()
-#w2v = Word2Vec(min_count = 1)
 kmeans = Kmeans(n_clusters=2, )
 spectral = Spectral(n_clusters=2, affinity= 'precomputed', n_init=100)
+multinomial = MultinomialNB()
 # Classifier for pipeline
 svc = svm.LinearSVC(multi_class='ovr')
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.25, random_state=0)
-#worddd = wordX.train(X_train, total_words = 750, epochs = 3)
+
+
+
+#----------------------------------------------------------
+# GRID SEARCH
+# -----------------------------------------------------------
+
+
+
+
+
+param_range = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+param_range_fl = [1.0, 0.5, 0.1]
+
 pipeline_one = Pipeline([
         ('selector', ColumnSelector(key='text')),
-        ('tfidf', tfidf)
+        ('tfidf', tfidf),
+        ('clf', ClfSwitcher())
 ])
-            
-pipeline = Pipeline([
-    ('features', pipeline_one),
-    ('classifier', svc)
-])
-       
-pipeline.fit(X_train, Y_train)
-y_pred = pipeline.predict(X_test)
-evaluate(y_pred, Y_test)
+
+
+
+# Construct grid searches     
+grid_params_svm = [{'clf__estimator': [svc], # SVM if hinge loss / logreg if log loss
+                   'tfidf__max_df': (0.25, 0.5, 0.75, 1.0),
+                   'tfidf__stop_words': ['english', None]}]
+
+
+grid_params_mnb = [{'clf__estimator': [multinomial],
+                    'tfidf__max_df': (0.25, 0.5, 0.75, 1.0),
+                    'tfidf__stop_words': [None],
+                    'clf__estimator__alpha': (1e-2, 1e-3, 1e-1),
+                    }]
+    
+gs_svm = GridSearchCV(pipeline_one,
+			grid_params_svm,
+			scoring='accuracy',
+			cv=10,
+			n_jobs=-1)
+
+gs_mnb = GridSearchCV(pipeline_one,
+                      grid_params_mnb,
+                      scoring='accuracy',
+                      cv=10,
+                      n_jobs=-1)
+grids = [gs_svm, gs_mnb]
+
+grid_dict = {0: 'Support Vector Machine (SVC)', 1: 'Multinomial Naive Bayes'}
+
+print('Performing model optimizations...')
+best_acc = 0.0
+best_clf = 0
+best_gs = ''
+for idx, gs in enumerate(grids):
+	print('\nEstimator: %s \n' % grid_dict[idx])	
+	# Fit grid search	
+	gs.fit(X_train, Y_train)
+	# Best params
+	print('Best params: %s \n' % gs.best_params_)
+#	# Best training data accuracy
+	print('Best training accuracy: %.3f \n' % gs.best_score_)
+#	# Predict on test data with best params
+	y_pred = gs.predict(X_test)
+#	# Test data accuracy of model with best params
+	print('Test set accuracy score for best params: %.3f \n' % accuracy_score(Y_test, y_pred))
+#	# Track best (highest test accuracy) model
+	if accuracy_score(Y_test, y_pred) > best_acc:
+		best_acc = accuracy_score(Y_test, y_pred)
+		best_gs = gs
+		best_clf = idx
+print('\nClassifier with best test set accuracy: %s \n' % grid_dict[best_clf])
+
+
+
+#evaluate(y_pred, Y_test)
 
 
 # =============================================================================

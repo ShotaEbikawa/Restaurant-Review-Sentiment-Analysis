@@ -32,7 +32,7 @@ from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.decomposition import IncrementalPCA
 from sklearn.decomposition import TruncatedSVD
-
+import json
 def pre_process(s):
     pass
 
@@ -366,5 +366,4 @@ X2 = yelp_data.iloc[1:, 4:5]
 category = pipeline.predict(X2)
 category = pd.DataFrame(data=category, columns=['category'])
 new_yelp_data = pd.concat([yelp_data, category], axis = 1, join = 'inner')
-
 

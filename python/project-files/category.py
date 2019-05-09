@@ -4,20 +4,10 @@ import re
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-#import re
-#from copy import deepcopy
-#from string import punctuation
-#from random import shuffle
-#from gensim.models.word2vec import Word2Vec
-#from tqdm import tqdm 
+
 from sklearn import preprocessing
-#from sklearn.preprocessing import OneHotEncoder
-#from sklearn.preprocessing import LabelBinarizer
 import nltk
 import scipy.sparse
-#nltk.download('stopwords')
-#nltk.download('punkt')
-#nltk.download('wordnet')
 from nltk.stem import WordNetLemmatizer
 #from nltk.stem import PorterStemmer
 from nltk.stem.snowball import SnowballStemmer
@@ -34,12 +24,56 @@ from sklearn.model_selection import KFold,cross_val_score
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
-from Extractors import AverageWordLengthExtractor, ItemSelector
-
+from Extractors import AverageWordLengthExtractor, ColumnSelector
+from sklearn.cluster import KMeans as Kmeans
+from sklearn.cluster import SpectralClustering as Spectral
+from sklearn.cluster import AgglomerativeClustering
+#from sklearn_extensions.fuzzy_kmeans import KMedians, FuzzyKMeans, KMeans
+from sklearn.metrics.pairwise import euclidean_distances
+from sklearn.decomposition import IncrementalPCA
+from sklearn.decomposition import TruncatedSVD
 
 def pre_process(s):
     pass
-    
+
+def preprocessing(X):
+    real_token = []
+    stop_words = nltk.corpus.stopwords.words('english')
+    punctuation =  [',','-','+','.','/','\\','\'','"','?','!','$','(',')','...',
+                    '..', '--', '---',':','~','=','`','{','}','\n', ',']
+    # new_X(which is a list) stores real_token
+    new_X = []
+    y = ''
+    lemmatize = WordNetLemmatizer()
+    stemmer = SnowballStemmer("english")
+    # iterates through a column containing text reviews
+    for review in X.values:
+        # make real_token empty every time new iteration starts
+        real_token = []
+        # tokens stores the tokenized version
+        # of the given text review(which is a list)
+        tokens = nltk.word_tokenize(str(review))
+        # iterate through the tokenized text review
+        for t in tokens:
+            y = ''
+            for ch in t:
+                if ch in stop_words or ch in punctuation:
+                    continue
+                else:
+                    y += ch;
+            # real_token appends t
+            # ONLY IF t is not a stop word
+            if y not in stop_words and y not in punctuation:
+                #t = stemmer.stem(t)
+                t = lemmatize.lemmatize(y)
+                real_token.append(t.lower())
+        # the text review will be reinitialized to real_token
+        review = real_token
+        # new_X stores reinitialized review
+        new_X.append(review)
+    # reinitialize X to new_X
+    X = new_X
+    return X    
 
 def featuring(X, feature_name):
     if (feature_name == 'BOW'):
@@ -286,45 +320,38 @@ violation_Service = violation_reviews[(violation_reviews['Violation_Number'] == 
 violation_Food = violation_reviews[(violation_reviews['Violation_Number'] == 1)]
 
 serviceX = violation_Service.iloc[1:, 2:3]
-serviceX = serviceX.sample(n= 15000)
+serviceX = serviceX.sample(n= 10000)
 foodX = violation_Food.iloc[1:, 2:3]
-foodX = foodX.sample(n= 15000)
+foodX = foodX.sample(n= 10000)
 serviceY = violation_Service.iloc[1:, 1:2]
-serviceY = serviceY.sample(n=15000)
+serviceY = serviceY.sample(n=10000)
 foodY = violation_Food.iloc[1:, 1:2]
-foodY = foodY.sample(n= 15000)
+foodY = foodY.sample(n= 10000)
 X = pd.concat([serviceX, foodX])
 Y = pd.concat([serviceY, foodY])
 Y = Y['Violation_Number'].astype(int)
-
+#X = preprocessing(X)
+#wordX = Word2Vec(X)
 tfidf = TfidfVectorizer(ngram_range=(1,2), stop_words='english',
-                        min_df=0., max_df=1.)
-ave = AverageWordLengthExtractor()
-
+                      min_df=0., max_df=1.)
+#ave = AverageWordLengthExtractor()
+#w2v = Word2Vec(min_count = 1)
+kmeans = Kmeans(n_clusters=2, )
+spectral = Spectral(n_clusters=2, affinity= 'precomputed', n_init=100)
 # Classifier for pipeline
 svc = svm.LinearSVC(multi_class='ovr')
-
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.25, random_state=0)
+#worddd = wordX.train(X_train, total_words = 750, epochs = 3)
 pipeline_one = Pipeline([
-        ('selector', ItemSelector(key='text')),
+        ('selector', ColumnSelector(key='text')),
         ('tfidf', tfidf)
 ])
-        
-#pipeline_two = Pipeline([
-#        ('selector', ItemSelector(key='text')),
-#        ('ave', ave)
-#])       
-        
-#feature_pipeline = FeatureUnion([
-#        ('one', pipeline_one),
-#        ('two', pipeline_two)
-#])
-        
+            
 pipeline = Pipeline([
     ('features', pipeline_one),
     ('classifier', svc)
 ])
        
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.25, random_state=0)
 pipeline.fit(X_train, Y_train)
 y_pred = pipeline.predict(X_test)
 evaluate(y_pred, Y_test)
@@ -336,9 +363,8 @@ evaluate(y_pred, Y_test)
 
 yelp_data = pd.read_json('yelp_training_set_review.json', lines=True)
 X2 = yelp_data.iloc[1:, 4:5]
-Y2 = yelp_data.iloc[1:, 3:4]
-X2_train, X2_test, Y2_train, Y2_test = train_test_split(X2, Y2, test_size=0.25, random_state=0)
-y_pred2 = pipeline.predict(X2_test)
-
+category = pipeline.predict(X2)
+category = pd.DataFrame(data=category, columns=['category'])
+new_yelp_data = pd.concat([yelp_data, category], axis = 1, join = 'inner')
 
 

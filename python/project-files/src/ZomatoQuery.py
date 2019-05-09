@@ -224,11 +224,11 @@ def z_parse(z, rest_json):
 
 
 def serialize_reviews(obj):
-   if isinstance(obj, RestaurantReview):
-       serial = obj.__dict__
-       return serial
-   else:
-       raise TypeError("Type not serializable")
+    if isinstance(obj, RestaurantReview):
+        serial = obj.__dict__
+        return serial
+    else:
+        raise TypeError("Type not serializable")
 
 
 def print_json(rests):

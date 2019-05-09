@@ -32,7 +32,10 @@ class AverageWordLengthExtractor(BaseEstimator, TransformerMixin):
         return self
     
     
-class ItemSelector(BaseEstimator, TransformerMixin):
+class ColumnSelector(BaseEstimator, TransformerMixin):
+    """
+    Selects the column from the DataFrame object identified by it's key
+    """
     def __init__(self, key):
         self.key = key
 

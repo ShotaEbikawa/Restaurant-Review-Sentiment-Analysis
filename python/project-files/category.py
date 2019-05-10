@@ -344,11 +344,6 @@ X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.25, random
 
 
 
-#----------------------------------------------------------
-# GRID SEARCH
-# -----------------------------------------------------------
-
-
 
 
 
@@ -379,13 +374,13 @@ gs_svm = GridSearchCV(pipeline_one,
 			grid_params_svm,
 			scoring='accuracy',
 			cv=10,
-			n_jobs=-1)
+			)
 
 gs_mnb = GridSearchCV(pipeline_one,
                       grid_params_mnb,
                       scoring='accuracy',
                       cv=10,
-                      n_jobs=-1)
+                      )
 grids = [gs_svm, gs_mnb]
 
 grid_dict = {0: 'Support Vector Machine (SVC)', 1: 'Multinomial Naive Bayes'}
@@ -395,32 +390,32 @@ best_acc = 0.0
 best_clf = 0
 best_gs = ''
 for idx, gs in enumerate(grids):
-	print('\nEstimator: %s \n' % grid_dict[idx])	
+	print('\nEstimator: %s' % grid_dict[idx])
 	# Fit grid search	
 	gs.fit(X_train, Y_train)
 	# Best params
-	print('Best params: %s \n' % gs.best_params_)
+	print('Best params: %s' % gs.best_params_)
 #	# Best training data accuracy
-	print('Best training accuracy: %.3f \n' % gs.best_score_)
+	print('Best training accuracy: %.3f' % gs.best_score_)
 #	# Predict on test data with best params
 	y_pred = gs.predict(X_test)
 #	# Test data accuracy of model with best params
-	print('Test set accuracy score for best params: %.3f \n' % accuracy_score(Y_test, y_pred))
+	print('Test set accuracy score for best params: %.3f ' % accuracy_score(Y_test, y_pred))
 #	# Track best (highest test accuracy) model
 	if accuracy_score(Y_test, y_pred) > best_acc:
 		best_acc = accuracy_score(Y_test, y_pred)
 		best_gs = gs
 		best_clf = idx
-print('\nClassifier with best test set accuracy: %s \n' % grid_dict[best_clf])
+print('\nClassifier with best test set accuracy: %s' % grid_dict[best_clf])
 
-
+# evaluate(y_pred, Y_test)
 # =============================================================================
 # NOW I'M GOING TO PREDICT THE YELP_DATA WITH THE PIPELINE
 # =============================================================================
 
 yelp_data = pd.read_json('yelp_training_set_review.json', lines=True)
 X2 = yelp_data.iloc[1:, 4:5]
-category = pipeline_one.predict(X2)
+category = gs.predict(X2)
 category = pd.DataFrame(data=category, columns=['category'])
 new_yelp_data = pd.concat([yelp_data, category], axis = 1, join = 'inner')
 

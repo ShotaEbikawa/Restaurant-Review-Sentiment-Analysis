@@ -49,6 +49,25 @@ class ExclamationPointCountExtractor(BaseEstimator, TransformerMixin):
         return self
     
     
+class UsefulValueExtractor(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        pass
+
+#    def useful_value(self, review_text):
+#        """Helper code to compute number of exclamation points in the text review"""
+#        return len([char for char in review_text if char == "!"])
+
+    def transform(self, df, y=None):
+        print(df)
+        """The workhorse of this feature extractor"""
+        return df
+#        return df.apply(self.num_exclamation_points).to_frame()
+
+    def fit(self, df, y=None):
+        """Returns `self` unless something different happens in train and test"""
+        return self
+    
+    
 class ColumnSelector(BaseEstimator, TransformerMixin):
     """
     Selects the column from the DataFrame object identified by it's key
@@ -60,6 +79,7 @@ class ColumnSelector(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, data_dict):
+        print(data_dict[self.key])
         return data_dict[self.key]
 
 

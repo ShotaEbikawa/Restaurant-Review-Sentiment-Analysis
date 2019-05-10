@@ -33,7 +33,7 @@ from sklearn.model_selection import KFold,cross_val_score
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
-from Extractors import AverageWordLengthExtractor, ExclamationPointCountExtractor, ColumnSelector
+from Extractors import AverageWordLengthExtractor, ExclamationPointCountExtractor, UsefulValueExtractor, ColumnSelector
 
 lemmatizer = WordNetLemmatizer()
 
@@ -232,6 +232,7 @@ restaurant_labeled = pd.read_csv('restaurant-review-labeled-data.csv', dtype=str
 
 yelp_data = pd.read_json('yelp_training_set_review.json', lines=True)
 
+
 # line 9 and 10 removes
 # the row with nan, or the row with null values
 # in the dataset
@@ -259,7 +260,7 @@ yelp_data1 = yelp_data[(yelp_data['stars'] == 1)]
 yelp_data3 = yelp_data[(yelp_data['stars'] == 3)]
 yelp_data5 = yelp_data[(yelp_data['stars'] == 5)]
 
-num_samples = 1000
+num_samples = 100
 
 X1 = yelp_data1.iloc[1:, 4:5]
 X1 = X1.sample(n=num_samples)
@@ -285,6 +286,7 @@ tfidf = TfidfVectorizer(ngram_range=(1, 2), stop_words='english',
                         min_df=0., max_df=1.)
 avg_word_length = AverageWordLengthExtractor()
 exclamation_count = ExclamationPointCountExtractor()
+useful_value = UsefulValueExtractor()
 
 # Classifiers for pipeline
 svc = svm.LinearSVC(multi_class='crammer_singer')
@@ -305,13 +307,20 @@ avg_word_length_pipeline = Pipeline([
 exclamation_pipeline = Pipeline([
         ('selector', ColumnSelector(key='text')),
         ('exclamation', exclamation_count)
-])  
+]) 
+        
+# Pipeline that selects the votes column and extracts the value at the 'useful' key
+useful_value_pipeline = Pipeline([
+        ('selector', ColumnSelector(key='votes')),
+        ('useful-value', useful_value)
+]) 
         
 # FeatureUnion all individual feature pipelines
 feature_pipeline = FeatureUnion([
         ('tfidf', tfidf_pipeline),
         ('avg-word-length', avg_word_length_pipeline),
-        ('exclamation', exclamation_pipeline)
+        ('exclamation', exclamation_pipeline),
+#        ('useful-value', useful_value_pipeline)
 ])
 
 pipeline = Pipeline([

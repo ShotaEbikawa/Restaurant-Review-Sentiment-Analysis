@@ -33,7 +33,7 @@ from sklearn.model_selection import KFold,cross_val_score
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
-from Extractors import AverageWordLengthExtractor, ColumnSelector
+from Extractors import AverageWordLengthExtractor, ExclamationPointCountExtractor, ColumnSelector
 
 lemmatizer = WordNetLemmatizer()
 
@@ -284,26 +284,34 @@ class_distribution = get_class_distribution(Y)
 tfidf = TfidfVectorizer(ngram_range=(1, 2), stop_words='english',
                         min_df=0., max_df=1.)
 avg_word_length = AverageWordLengthExtractor()
+exclamation_count = ExclamationPointCountExtractor()
 
 # Classifiers for pipeline
 svc = svm.LinearSVC(multi_class='crammer_singer')
 
-# Pipeline that includes all features that perform operations on 'text' column
-text_column_pipeline = Pipeline([
+# Pipeline that selects the text column and extracts tfidf score of terms with TfidfVectorizer
+tfidf_pipeline = Pipeline([
         ('selector', ColumnSelector(key='text')),
         ('tfidf', tfidf)
 ])
-        
-# Pipeline that includes all features that perform operations on 'useful' column
-useful_column_pipeline = Pipeline([
+
+# Pipeline that selects the text column and computes average word length for each text review
+avg_word_length_pipeline = Pipeline([
         ('selector', ColumnSelector(key='text')),
         ('ave', avg_word_length)
 ])  
         
+# Pipeline that selects the text column and extracts the number of exclamation points for each text review
+exclamation_pipeline = Pipeline([
+        ('selector', ColumnSelector(key='text')),
+        ('exclamation', exclamation_count)
+])  
+        
 # FeatureUnion all individual feature pipelines
 feature_pipeline = FeatureUnion([
-        ('text_column', text_column_pipeline),
-        ('useful_column', useful_column_pipeline)
+        ('tfidf', tfidf_pipeline),
+        ('avg-word-length', avg_word_length_pipeline),
+        ('exclamation', exclamation_pipeline)
 ])
 
 pipeline = Pipeline([

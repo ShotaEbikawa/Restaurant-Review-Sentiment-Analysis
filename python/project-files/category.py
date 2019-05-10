@@ -414,17 +414,13 @@ for idx, gs in enumerate(grids):
 print('\nClassifier with best test set accuracy: %s \n' % grid_dict[best_clf])
 
 
-
-#evaluate(y_pred, Y_test)
-
-
 # =============================================================================
 # NOW I'M GOING TO PREDICT THE YELP_DATA WITH THE PIPELINE
 # =============================================================================
 
 yelp_data = pd.read_json('yelp_training_set_review.json', lines=True)
 X2 = yelp_data.iloc[1:, 4:5]
-category = pipeline.predict(X2)
+category = pipeline_one.predict(X2)
 category = pd.DataFrame(data=category, columns=['category'])
 new_yelp_data = pd.concat([yelp_data, category], axis = 1, join = 'inner')
 

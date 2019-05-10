@@ -7,8 +7,9 @@ Created on Sat Apr 20 15:48:41 2019
 """
 
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn import linear_model
+from sklearn.linear_model import SGDClassifier
 import numpy as np
+import warnings
 
 
 class AverageWordLengthExtractor(BaseEstimator, TransformerMixin):
@@ -21,7 +22,13 @@ class AverageWordLengthExtractor(BaseEstimator, TransformerMixin):
 
     def average_word_length(self, review_text):
         """Helper code to compute average word length in the text review"""
-        return np.mean([len(word) for word in review_text.split()])
+        with warnings.catch_warnings():
+            warnings.filterwarnings('error')
+            try:
+                x = np.nanmean([len(word) for word in review_text.split()])
+            except RuntimeWarning:
+                x = np.NaN    
+        return x 
 
     def transform(self, df, y=None):
         """The workhorse of this feature extractor"""
@@ -53,15 +60,13 @@ class UsefulValueExtractor(BaseEstimator, TransformerMixin):
     def __init__(self):
         pass
 
-#    def useful_value(self, review_text):
-#        """Helper code to compute number of exclamation points in the text review"""
-#        return len([char for char in review_text if char == "!"])
+    def useful_value(self, useful):
+        """Helper code to return the value in useful column"""
+        return useful
 
     def transform(self, df, y=None):
-        print(df)
         """The workhorse of this feature extractor"""
-        return df
-#        return df.apply(self.num_exclamation_points).to_frame()
+        return df.apply(self.useful_value).to_frame()
 
     def fit(self, df, y=None):
         """Returns `self` unless something different happens in train and test"""
@@ -79,7 +84,6 @@ class ColumnSelector(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, data_dict):
-        print(data_dict[self.key])
         return data_dict[self.key]
 
 
@@ -87,7 +91,7 @@ class ClfSwitcher(BaseEstimator):
 
     def __init__(
         self, 
-        estimator = linear_model.SGDClassifier(),
+        estimator = SGDClassifier(),
     ):
         """
         A Custom BaseEstimator that can switch between classifiers.

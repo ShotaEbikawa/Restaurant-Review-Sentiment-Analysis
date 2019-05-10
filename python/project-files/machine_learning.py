@@ -168,12 +168,30 @@ def labelEncoder(Y):
     encoder = preprocessing.LabelEncoder()
     Y = encoder.fit_transform(Y)
     return Y
+
+
+def add_vote_columns(yelp_df):
+    funny_data = []
+    useful_data = []
+    cool_data = []
+
+    # Add values for each key to each data array
+    for vote in yelp_df['votes']:
+        funny_data.append(vote['funny'])
+        useful_data.append(vote['useful'])
+        cool_data.append(vote['cool'])
     
+    # Construct a new DataFrame with the array data, with corresponding column name
+    funny_df = pd.DataFrame(data=funny_data, columns=['funny'])
+    useful_df = pd.DataFrame(data=useful_data, columns=['useful'])
+    cool_df = pd.DataFrame(data=cool_data, columns=['cool'])
+
+    # Remove 'votes' column from original yelp DataFrame
+    yelp_df = yelp_df.drop(columns=['votes'])
     
-def evaluate(y_pred, Y_test):
-    print('Accuracy:\n', accuracy_score(Y_test, y_pred))
-    print('Confusion Matrix:\n', confusion_matrix(Y_test, y_pred))
-    print(classification_report(Y_test, y_pred))
+    # Concat the new df's with the original yelp_df
+    yelp_df = pd.concat([yelp_df, funny_df, useful_df, cool_df], axis=1, join='inner')
+    return yelp_df
     
     
 def get_majority_classifier(Y):
@@ -227,54 +245,43 @@ def k_fold_cross_validation(k, pipeline, X_train, Y_train):
     return scores
 
 
+def evaluate(y_pred, Y_test):
+    print('Accuracy:\n', accuracy_score(Y_test, y_pred))
+    print('Confusion Matrix:\n', confusion_matrix(Y_test, y_pred))
+    print(classification_report(Y_test, y_pred))
+
+
 data = pd.read_json('src/restaurant-review.json')
 restaurant_labeled = pd.read_csv('restaurant-review-labeled-data.csv', dtype=str)
 
+# Read in json formatted yelp training set review data into a DataFrame
 yelp_data = pd.read_json('yelp_training_set_review.json', lines=True)
 
+# Add 'funny', 'useful', and 'cool' as separate columns in yelp_data DataFrame
+yelp_data = add_vote_columns(yelp_data)
 
-# line 9 and 10 removes
-# the row with nan, or the row with null values
-# in the dataset
-restaurant_labeled = restaurant_labeled[pd.notnull(restaurant_labeled['sentences__text'])]
-restaurant_labeled = restaurant_labeled[pd.notnull(restaurant_labeled['sentences__Opinions__Opinion__polarity'])]
-restaurant_labeled = restaurant_labeled[pd.notnull(restaurant_labeled['sentences__text'])]
-restaurant_labeled = restaurant_labeled[pd.notnull(restaurant_labeled['sentences__Opinions__Opinion__polarity'])]
-#restaurant_labeled = restaurant_labeled[restaurant_labeled['sentences__Opinions__Opinion__category'].str.contains('SERVICE')]
-# we will ignore all the row that contains 'neutral' in the positive/negative column
-# because we don't need additional label in our dataset
-restaurant_labeled = restaurant_labeled[restaurant_labeled['sentences__Opinions__Opinion__polarity'] != 'neutral']
-
-# X stores the text review column of the dataset
-# Y stores the positive/negative label of the dataset
-#X = restaurant_labeled.iloc[1:, 3:4]
-#Y = restaurant_labeled.iloc[1:, 11:12]
-
-
-
-#========================================================================
-# THIS IS WHERE I INCLUDED KMEANS PIPELINE
-#========================================================================
-
+# Extract all 1, 3, 5 star rating reviews for 'negative', 'neutral', and 'positive'
 yelp_data1 = yelp_data[(yelp_data['stars'] == 1)]
 yelp_data3 = yelp_data[(yelp_data['stars'] == 3)]
 yelp_data5 = yelp_data[(yelp_data['stars'] == 5)]
 
-num_samples = 100
+num_samples = 1000
 
-X1 = yelp_data1.iloc[1:, 4:5]
+# Take all 1 star, 3 star, and 5 star rows for both text and useful columns to use as X text/train data
+X1 = yelp_data1.loc[:, ['text', 'useful']]
 X1 = X1.sample(n=num_samples)
-X3 = yelp_data3.iloc[1:, 4:5]
+X3 = yelp_data3.loc[:, ['text', 'useful']]
 X3 = X3.sample(n=num_samples)
-X5 = yelp_data5.iloc[1:, 4:5]
+X5 = yelp_data5.loc[:, ['text', 'useful']]
 X5 = X5.sample(n=num_samples)
 X = pd.concat([X1, X3, X5])
 
-Y1 = yelp_data1.iloc[1:, 3:4]
+# Take all 1 star, 3 star, and 5 star rows for star rating column for our Y data
+Y1 = yelp_data1.loc[:, ['stars']]
 Y1 = Y1.sample(n=num_samples)
-Y3 = yelp_data3.iloc[1:, 3:4]
+Y3 = yelp_data3.loc[:, ['stars']]
 Y3 = Y3.sample(n=num_samples)
-Y5 = yelp_data5.iloc[1:, 3:4]
+Y5 = yelp_data5.loc[:, ['stars']]
 Y5 = Y5.sample(n=num_samples)
 Y = pd.concat([Y1, Y3, Y5])
 
@@ -311,7 +318,7 @@ exclamation_pipeline = Pipeline([
         
 # Pipeline that selects the votes column and extracts the value at the 'useful' key
 useful_value_pipeline = Pipeline([
-        ('selector', ColumnSelector(key='votes')),
+        ('selector', ColumnSelector(key='useful')),
         ('useful-value', useful_value)
 ]) 
         
@@ -320,7 +327,7 @@ feature_pipeline = FeatureUnion([
         ('tfidf', tfidf_pipeline),
         ('avg-word-length', avg_word_length_pipeline),
         ('exclamation', exclamation_pipeline),
-#        ('useful-value', useful_value_pipeline)
+        ('useful-value', useful_value_pipeline)
 ])
 
 pipeline = Pipeline([

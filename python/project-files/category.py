@@ -14,6 +14,7 @@ from nltk.stem.snowball import SnowballStemmer
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer, TfidfTransformer
 #from gensim.models import word2vec
+from sklearn.naive_bayes import GaussianNB
 from sklearn.naive_bayes import MultinomialNB
 #from sklearn.naive_bayes import BernoulliNB
 from sklearn.ensemble import RandomForestClassifier
@@ -35,7 +36,7 @@ from sklearn.decomposition import TruncatedSVD
 #import json
 from sklearn.model_selection import GridSearchCV
 from sklearn import svm
-    
+from matplotlib.pyplot import figure
     
 def printAccuracy(pred, test):
     print(accuracy_score(y_pred, Y_test))
@@ -155,11 +156,14 @@ tfidf = TfidfVectorizer(ngram_range=(1,2), stop_words='english',
 
 
 #------------------------------------------------------------------------------------------------
-# CLASSIFIERS (Multinomial Naive Bayes, Linear Support Vector Machines, Random Forest Classifier)
+# CLASSIFIERS (Multinomial Naive Bayes, Gaussian Naive Bayes, Linear Support Vector Machines,
+# Random Forest Classifier), Logistic Regressoin
 #------------------------------------------------------------------------------------------------
 multinomial = MultinomialNB()
+gaussian = GaussianNB()
 svc = svm.LinearSVC(multi_class='ovr')
 rf = RandomForestClassifier()
+lr = LogisticRegression()
 
 
 #------------------------------------------------------------------------------------------------
@@ -179,36 +183,57 @@ param_range_fl = [1.0, 0.5, 0.1]
 pipeline_one = Pipeline([
         ('selector', ColumnSelector(key='text')),
         ('tfidf', tfidf),
-        ('clf', ClfSwitcher())
+        ('clf', ClfSwitcher()),
 ])
 
 
-
-# list containing all the given parameters for seleted classifiers and feature extractors
-# paremter name starting with clf__estimator__ is for the given classifier's parameter
-# paramter name starting with tfidf__ is for the tfidf's parameter 
-
+"""
+list containing all the given parameters for seleted classifiers and feature extractors
+paremter name starting with clf__estimator__ is for the given classifier's parameter
+paramter name starting with tfidf__ is for the tfidf's parameter 
+I commented out some of the parameters because it did not really affect the accuracy
+and some of them took way too long to run.
+The most useful parameter, in my opinion, was tfidf__max_df
+"""
 
 # list containing parameters for Linear Support Vector Machine and TFIDF    
 grid_params_svm = [{'clf__estimator': [svc], # SVM if hinge loss / logreg if log loss
                    'tfidf__max_df': (0.25, 0.5, 0.75, 1.0),
-                   'tfidf__stop_words': ['english', None],
-                   'clf__estimator__max_iter': [1, 10, 100]
+#                   'tfidf__min_df': (0, 0.01, 0.05, 0.10, 0.20),
+#                   'tfidf__stop_words': ['english', None],
+#                   'clf__estimator__max_iter': [1, 10, 100,500,1000],
+#                   'clf__estimator__multi_class': ['ovr']
                    }]
 
 # list containing parameters for Multinomial Naive Bayes and TFIDF
 grid_params_mnb = [{'clf__estimator': [multinomial],
                     'tfidf__max_df': (0.25, 0.5, 0.75, 1.0),
-                    'tfidf__stop_words': [None],
+#                    'tfidf__min_df': (0,0.01, 0.05, 0.10, 0.20),
+#                    'tfidf__stop_words': ['english', None],
                     'clf__estimator__alpha': (1e-2, 1e-3, 1e-1),
                     }]
+  
     
 # list containing parameters for Random Forest Classifier and TFIDF
 grid_params_rf = [{'clf__estimator': [rf],
                    'tfidf__max_df': (0.25, 0.5, 0.75, 1.0),
-                   'tfidf__stop_words': [None],
-                   'clf__estimator__min_samples_leaf': [1, 3, 10],
-                   'clf__estimator__n_estimators': [10,11,12]
+#                   'tfidf__min_df': (0, 0.01, 0.05, 0.10, 0.20),
+#                   'tfidf__stop_words': [None],
+#                   'clf__estimator__min_samples_leaf': [1, 3, 5],
+#                   'clf__estimator__n_estimators': [10,11,12]
+                   }]
+
+#list containing parameters for Logistic Regression and TFIDF
+grid_params_lr = [{'clf__estimator': [lr],
+                   'tfidf__max_df': (0.25, 0.5, 0.75, 1.0),
+                   'clf__estimator__solver': ['liblinear','sag', 'saga'],
+                   'clf__estimator__C': [#0.001, 0.01, 0.1, 1, 10, 
+                           100, 1000],
+#                   'tfidf__min_df': (0, 0.01, 0.05, 0.10, 0.20),
+#                   'tfidf__stop_words': [None],
+#                   'clf__estimator__min_samples_leaf': [1, 3, 5],
+#                   'clf__estimator__n_estimators': [10,11,12]
+                   
                    }]
 
 
@@ -226,17 +251,24 @@ gs_mnb = GridSearchCV(pipeline_one,
                       cv=10,
                       )
 
+
 #GridSearchCV for Random Forest Classifier
 gs_rf = GridSearchCV(pipeline_one,
                      grid_params_rf,
                      scoring='accuracy',
                      cv=10)
 
+#GridSearchCV for Logistic Regression
+gs_lr = GridSearchCV(pipeline_one,
+                     grid_params_lr,
+                     scoring='accuracy',
+                     cv=10)
+
 # list containing all of the GridSearchCV
-grids = [gs_svm, gs_mnb, gs_rf]
+grids = [gs_svm, gs_mnb, gs_rf, gs_lr]
 
 # Dictionary containing all of the name of the classifiers
-grid_dict = {0: 'Support Vector Machine (SVC)', 1: 'Multinomial Naive Bayes', 2:'Random Forest Classifier'}
+grid_dict = {0: 'Support Vector Machine (SVC)', 1: 'Multinomial Naive Bayes', 2:'Random Forest Classifier', 3: 'Logistic Regression'}
 
 print('Performing model optimizations...')
 # Stores the best accuracy
@@ -246,19 +278,33 @@ best_clf = 0
 # Stores the best performing GridSearch 
 best_gs = ''
 
+# These two lists will be used for plotting the graph lateron
+classifier_list = ['SVC', 'MNB', 'RFC', 'LR']
+accuracy_list = []
+
 # Iterate through grids
 for idx, gs in enumerate(grids):
-	print('\nEstimator: %s' % grid_dict[idx])
-	gs.fit(X_train, Y_train)
-	print('Best params: %s' % gs.best_params_)
-	print('Best training accuracy: %.3f' % gs.best_score_)
-	y_pred = gs.predict(X_test)
-	print('Test set accuracy score for best params: %.3f ' % accuracy_score(Y_test, y_pred))
-	if accuracy_score(Y_test, y_pred) > best_acc:
-		best_acc = accuracy_score(Y_test, y_pred)
-		best_gs = gs
-		best_clf = idx
+    print('\nEstimator: %s' % grid_dict[idx])
+    gs.fit(X_train, Y_train)
+    print('Best params: %s' % gs.best_params_)
+    print('Best training accuracy: %.3f' % gs.best_score_)
+    y_pred = gs.predict(X_test)
+    # append the classifiers's accuracy to the accuracy_list
+    accuracy_list.append(accuracy_score(Y_test, y_pred))
+    print('Test set accuracy score for best params: %.3f ' % accuracy_score(Y_test, y_pred))
+    if accuracy_score(Y_test, y_pred) > best_acc:
+        best_acc = accuracy_score(Y_test, y_pred)
+        best_gs = gs
+        best_clf = idx
 print('\nClassifier with best test set accuracy: %s' % grid_dict[best_clf])
+
+
+#plot the graph 
+figure(num=None, figsize=(12, 6))
+plt.scatter(classifier_list, accuracy_list)
+plt.xlabel('Classifiers')
+plt.ylabel('Accuracy')
+
 
 # evaluate(y_pred, Y_test)
 # =============================================================================
@@ -267,7 +313,7 @@ print('\nClassifier with best test set accuracy: %s' % grid_dict[best_clf])
 
 yelp_data = pd.read_json('yelp_training_set_review.json', lines=True)
 X2 = yelp_data.iloc[1:, 4:5]
-category = gs.predict(X2)
+category = best_gs.predict(X2)
 category = pd.DataFrame(data=category, columns=['category'])
 new_yelp_data = pd.concat([yelp_data, category], axis = 1, join = 'inner')
 

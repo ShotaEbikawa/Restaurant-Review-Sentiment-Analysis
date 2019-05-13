@@ -195,38 +195,6 @@ def k_fold_cross_validation(k, pipeline, X_train, Y_train):
     return scores
 
 
-def get_grid_search_params():
-    multinomial = MultinomialNB()
-    gaussian = GaussianNB()
-    svc = svm.LinearSVC(multi_class='ovr')
-    rf = RandomForestClassifier()
-    lr = LogisticRegression()
-
-    # list containing parameters for Linear Support Vector Machine and TFIDF
-    parameters = [
-        {
-            'clf__estimator': [svc], # SVM if hinge loss / logreg if log loss
-            'tfidf__max_df': (0.25, 0.5, 0.75, 1.0)
-        },
-        {
-            'clf__estimator': [multinomial],
-            'tfidf__max_df': (0.25, 0.5, 0.75, 1.0),
-            'clf__estimator__alpha': (1e-2, 1e-3, 1e-1)
-        },
-        {
-            'clf__estimator': [rf],
-            'tfidf__max_df': (0.25, 0.5, 0.75, 1.0)
-        },
-        {
-            'clf__estimator': [lr],
-            'tfidf__max_df': (0.25, 0.5, 0.75, 1.0),
-            'clf__estimator__solver': ['liblinear', 'sag', 'saga'],
-            'clf__estimator__C': [100, 1000]
-        }
-     ]
-    return parameters
-
-
 def make_prediction(X, Y, pipeline, classifier_name):
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.25, random_state=0)
 
@@ -236,19 +204,10 @@ def make_prediction(X, Y, pipeline, classifier_name):
     # k=10 implies 10-fold cross validation
     #scores = k_fold_cross_validation(10, pipeline, X_train, Y_train)
 
-    # pipeline.fit(X_train, Y_train.values.ravel())
-    #
-    # y_pred = pipeline.predict(X_test)
-    #
-    # evaluate(y_pred, Y_test, X_test, pipeline, classifier_name)
-
-    parameters = get_grid_search_params()
-
-    gscv = GridSearchCV(pipeline, parameters, cv=5, n_jobs=12, verbose=3)
-    gscv.fit(X_train, Y_train.values.ravel())
-
-    y_pred = gscv.predict(X_test)
-
+    pipeline.fit(X_train, Y_train.values.ravel())
+    
+    y_pred = pipeline.predict(X_test)
+    
     evaluate(y_pred, Y_test, X_test, pipeline, classifier_name)
 
 
@@ -355,7 +314,7 @@ classifier_dict = {
 for name, classifier in classifier_dict.items():
     pipeline = Pipeline([
         ('features', feature_pipeline),
-        ('clf', ClfSwitcher())
+        ('classifier', classifier)
     ])
 
     make_prediction(X, Y, pipeline, name)

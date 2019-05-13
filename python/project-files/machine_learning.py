@@ -18,163 +18,31 @@ import scipy.sparse
 #nltk.download('punkt')
 #nltk.download('wordnet')
 from nltk.stem import WordNetLemmatizer
-#from nltk.stem import PorterStemmer
-from nltk.stem.snowball import SnowballStemmer
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.feature_extraction.text import TfidfVectorizer, TfidfTransformer
-#from gensim.models import word2vec
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
-#from sklearn.naive_bayes import BernoulliNB
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-#from sklearn.model_selection import GridSearchCV
 from sklearn import svm
-from sklearn.model_selection import KFold,cross_val_score
+from sklearn.model_selection import cross_val_score
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
-from Extractors import ColumnSelector, PositiveWordCountExtractor, NegativeWordCountExtractor, UppercaseWordCountExtractor, AverageWordLengthExtractor, ExclamationPointCountExtractor, UsefulValueExtractor, ClfSwitcher
+from Extractors import ColumnSelector, PositiveWordCountExtractor, NegativeWordCountExtractor, UppercaseWordCountExtractor, AverageWordLengthExtractor, ExclamationPointCountExtractor, UsefulValueExtractor
 from matplotlib.pyplot import figure
 
+# Global variables
 lemmatizer = WordNetLemmatizer()
 
 decoder = {1: 'negative', 3: 'neutral', 5: 'positive'}
 
-num_samples = 100
+num_samples = 10
 
 classifier_list = ['SVC', 'MNB', 'RFC', 'LR']
 accuracy_list = []
 
-def preprocessing(X):
-    real_token = []
-    stop_words = nltk.corpus.stopwords.words('english')
-    punctuation =  [',','-','+','.','/','\\','\'','"','?','!','$','(',')','...',
-                    '..', '--', '---',':','~','=','`','{','}','\n', ',']
-    # new_X(which is a list) stores real_token
-    new_X = []
-    y = ''
-    lemmatize = WordNetLemmatizer()
-    stemmer = SnowballStemmer("english")
-    # iterates through a column containing text reviews
-    for review in X.values:
-        # make real_token empty every time new iteration starts
-        real_token = []
-        # tokens stores the tokenized version
-        # of the given text review(which is a list)
-        tokens = nltk.word_tokenize(str(review))
-        # iterate through the tokenized text review
-        for t in tokens:
-            y = ''
-            for ch in t:
-                if ch in stop_words or ch in punctuation:
-                    continue
-                else:
-                    y += ch;
-            # real_token appends t
-            # ONLY IF t is not a stop word
-            if y not in stop_words and y not in punctuation:
-                #t = stemmer.stem(t)
-                t = lemmatize.lemmatize(y)
-                real_token.append(t.lower())
-        # the text review will be reinitialized to real_token
-        review = real_token
-        # new_X stores reinitialized review
-        new_X.append(review)
-    # reinitialize X to new_X
-    X = new_X
-    return X
-
-
-def pre_process(s):
-    pass
-
-
-def featuring(X, feature_name):
-    if (feature_name == 'BOW'):
-        BOW_Vector = CountVectorizer(ngram_range=(1, 3), tokenizer=lambda doc: doc,
-                                     lowercase=False, min_df = 0., max_df = 1., max_features = 5581)
-        BOW_Matrix = BOW_Vector.fit_transform(X)
-        features = BOW_Vector.get_feature_names()
-        BOW_Matrix = BOW_Matrix.toarray()
-        BOW_df = pd.DataFrame(BOW_Matrix, columns = features)
-        return BOW_df
-    if (feature_name == 'TFIDF'):
-        tfidf = TfidfVectorizer(ngram_range=(1,2), lowercase=False,
-                                analyzer = 'word', tokenizer=lambda doc: doc,
-                                min_df=0., max_df=1.)
-        X_tfidf = tfidf.fit_transform(X)
-        features = tfidf.get_feature_names()
-        X_tfidf = X_tfidf.toarray()
-        X_df = pd.DataFrame(X_tfidf, columns = features)
-        return X_df
-
-
-def crossValidate(classifier, X, Y):
-    k_fold = KFold(n_splits=10, shuffle=True)
-    if (classifier == 'LinearSVC'):
-        clf = svm.LinearSVC(multi_class='ovr')
-        cross_v_tdidf = cross_val_score(clf, X, Y, cv=k_fold, n_jobs=1)
-        #        cross_v_bow = cross_val_score(multinomialNB, BOW_df, Y, cv=k_fold, n_jobs=1)
-        num = 0
-        for i in cross_v_tdidf:
-            num +=i
-        print(num/10)
-
-        num = 0
-        #        for i in cross_v_bow:
-        #            num +=i
-        #        print(num/10)
-        return cross_v_tdidf
-
-def produceSentiment(column_name, test_Y):
-    #    file_name = pd.read_json("src\dummy-review.json")
-    i = 0
-    j = 1
-    k = 2
-    pos_count = 0
-    neu_count = 0
-    neg_count = 0
-    test_Y_list = []
-    while (i < len(test_Y)):
-        if (test_Y[i] and test_Y[i] == 'positive'):
-            pos_count += 1
-        elif (test_Y[i] and test_Y[i] == 'neutral'):
-            neu_count += 1
-        else:
-            neg_count += 1
-        if (test_Y[j] and test_Y[j] == 'positive'):
-            pos_count += 1
-        elif (test_Y[j] and test_Y[j] == 'neutral'):
-            neu_count += 1
-        else:
-            neg_count += 1
-        if (test_Y[k] and test_Y[k] == 'positive'):
-            pos_count += 1
-        elif (test_Y[k] and test_Y[k] == 'neutral'):
-            neu_count += 1
-        else:
-            neg_count += 1
-
-        cmax = max(pos_count, neu_count, neg_count)
-        if cmax == pos_count:
-            test_Y_list.append('positive')
-        elif cmax == neu_count:
-            test_Y_list.append('neutral')
-        else:
-            test_Y_list.append('negative')
-        i += 3
-        j += 3
-        k += 3
-        pos_count = 0
-        neu_count = 0
-        neg_count = 0
-    data[column_name] = test_Y_list
-# imports csv file of restaurant-review-labeled-data.csv
-
-def labelEncoder(Y):
-    encoder = preprocessing.LabelEncoder()
-    Y = encoder.fit_transform(Y)
-    return Y
+pipelines = []
+best_accuracy_score = 0.0
+best_pipeline = None
 
 
 def add_vote_columns(yelp_df):
@@ -339,13 +207,15 @@ def make_prediction(X, Y, pipeline, classifier_name):
 
     y_pred = pipeline.predict(X_test)
 
-    evaluate(y_pred, Y_test, X_test, classifier_name)
+    evaluate(y_pred, Y_test, X_test, pipeline, classifier_name)
 
 
-def evaluate(y_pred, Y_test, X_test, classifier_name):
+def evaluate(y_pred, Y_test, X_test, pipeline, classifier_name):
     print(f'\nEvaluation results for classifier: {classifier_name}\n')
-    print('Accuracy:\n', accuracy_score(Y_test, y_pred))
-    accuracy_list.append(accuracy_score(Y_test, y_pred))
+    acc_score = accuracy_score(Y_test, y_pred)
+    accuracy_list.append(acc_score)
+    pipelines.append((pipeline, acc_score))
+    print('Accuracy:\n', acc_score)
     print('Confusion Matrix:\n', confusion_matrix(Y_test, y_pred))
     print('Classification report:\n', classification_report(Y_test, y_pred))
 
@@ -360,15 +230,45 @@ def evaluate(y_pred, Y_test, X_test, classifier_name):
             break
         
         
-def plot_graph():
+def plot_accuracy_graph():
     figure(num=None, figsize=(12, 6))
     plt.scatter(classifier_list, accuracy_list)
     plt.xlabel('Classifiers')
     plt.ylabel('Accuracy')
 
 
-data = pd.read_json('src/restaurant-review.json')
-restaurant_labeled = pd.read_csv('restaurant-review-labeled-data.csv', dtype=str)
+def predict_zomato_reviews():
+    data = pd.read_json('src/restaurant-review-zomato.json')
+
+    review_rows = []
+    useful_rows = []
+    for index, row in data.iterrows():
+        for review in row['reviews']:
+            if review and review['text']:
+                review_rows.append(review['text'])
+                useful_rows.append(0)
+
+    reviews_df = pd.DataFrame(data=review_rows, columns=['text'])
+    useful_df = pd.DataFrame(data=useful_rows, columns=['useful'])
+
+    reviews_df = pd.concat([reviews_df, useful_df], axis=1, join='inner')
+
+    max_score = 0
+    for pipeline, acc_score in pipelines:
+        if acc_score > max_score:
+            best_pipeline = pipeline
+
+    y_results = best_pipeline.predict(reviews_df)
+
+    total_iters = 10
+    y_index = 0
+    print(f'Showing {total_iters} results of previously unseen reviews and predicted output label...\n')
+    for index, row in reviews_df.iterrows():
+        print(f'Review text: \n{row["text"]} \n\nPredicted: \n{decoder[y_results[y_index]]}\n')
+        y_index += 1
+        if y_index >= total_iters:
+            break
+
 
 # Read in json formatted yelp training set review data into a DataFrame
 yelp_data = pd.read_json('yelp_training_set_review.json', lines=True)
@@ -421,12 +321,7 @@ for name, classifier in classifier_dict.items():
     make_prediction(X, Y, pipeline, name)
     
 # Plot graph of classifiers and accuracy on x,y axis
-plot_graph()
+plot_accuracy_graph()
 
-#test_data = pd.read_csv('src/restaurant-review.csv')
-#test_X = test_data.iloc[:,-1]
-#test_X = preprocessing(test_X)
-#test_X = featuring(test_X, 'TFIDF')
-#test_Y = list(clf.predict(test_X))
-#produceSentiment('overall_senti', test_Y)
-
+# Predict zomato restaurant reviews using our best (most accurate) feature/classifier pipeline
+predict_zomato_reviews()

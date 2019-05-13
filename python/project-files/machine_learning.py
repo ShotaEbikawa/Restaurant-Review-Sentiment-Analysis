@@ -33,7 +33,7 @@ from sklearn.model_selection import KFold,cross_val_score
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
-from Extractors import ColumnSelector, PositiveWordCountExtractor, NegativeWordCountExtractor, UppercaseWordCountExtractor, AverageWordLengthExtractor, ExclamationPointCountExtractor, UsefulValueExtractor
+from Extractors import ColumnSelector, PositiveWordCountExtractor, NegativeWordCountExtractor, UppercaseWordCountExtractor, AverageWordLengthExtractor, ExclamationPointCountExtractor, UsefulValueExtractor, ClfSwitcher
 
 lemmatizer = WordNetLemmatizer()
 
@@ -325,10 +325,21 @@ def k_fold_cross_validation(k, pipeline, X_train, Y_train):
     return scores
 
 
-def evaluate(y_pred, Y_test):
+def evaluate(y_pred, Y_test, X_test):
     print('Accuracy:\n', accuracy_score(Y_test, y_pred))
     print('Confusion Matrix:\n', confusion_matrix(Y_test, y_pred))
     print(classification_report(Y_test, y_pred))
+
+    encoder = {1: 'negative', 3: 'neutral', 5: 'positive'}
+    
+    # Iterate through X_test total_iters times, printing the review text and predicted output label
+    total_iters = 10
+    y_index = 0
+    for index, row in X_test.iterrows():
+        print(f'Review text: \n{row["text"]} \n\nPredicted: \n\n{encoder[y_pred[y_index]]}\n')
+        y_index += 1
+        if y_index >= total_iters:
+            break
 
 
 data = pd.read_json('src/restaurant-review.json')
@@ -345,7 +356,7 @@ yelp_data1 = yelp_data[(yelp_data['stars'] == 1)]
 yelp_data3 = yelp_data[(yelp_data['stars'] == 3)]
 yelp_data5 = yelp_data[(yelp_data['stars'] == 5)]
 
-num_samples = 500
+num_samples = 100
 
 # Take all 1 star, 3 star, and 5 star rows for both text and useful columns to use as X text/train data
 X = pd.concat([
@@ -378,7 +389,7 @@ pipeline.fit(X_train, Y_train.values.ravel())
 
 y_pred = pipeline.predict(X_test)
 
-evaluate(y_pred, Y_test)
+evaluate(y_pred, Y_test, X_test)
 
 #test_data = pd.read_csv('src/restaurant-review.csv')
 #test_X = test_data.iloc[:,-1]

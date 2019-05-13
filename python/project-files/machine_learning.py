@@ -36,6 +36,7 @@ lemmatizer = WordNetLemmatizer()
 decoder = {1: 'negative', 3: 'neutral', 5: 'positive'}
 
 num_samples = 10
+total_iters = 10
 
 classifier_list = ['SVC', 'MNB', 'RFC', 'LR']
 accuracy_list = []
@@ -220,7 +221,6 @@ def evaluate(y_pred, Y_test, X_test, pipeline, classifier_name):
     print('Classification report:\n', classification_report(Y_test, y_pred))
 
     # Iterate through X_test total_iters times, printing the review text and predicted output label
-    total_iters = 10
     y_index = 0
     print(f'Showing {total_iters} results of review text and predicted output label...\n')
     for index, row in X_test.iterrows():
@@ -260,7 +260,6 @@ def predict_zomato_reviews():
 
     y_results = best_pipeline.predict(reviews_df)
 
-    total_iters = 10
     y_index = 0
     print(f'Showing {total_iters} results of previously unseen reviews and predicted output label...\n')
     for index, row in reviews_df.iterrows():

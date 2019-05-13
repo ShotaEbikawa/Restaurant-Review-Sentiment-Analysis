@@ -341,11 +341,11 @@ yelp_data = pd.read_json('yelp_training_set_review.json', lines=True)
 yelp_data = add_vote_columns(yelp_data)
 
 # Extract all 1, 3, 5 star rating reviews for 'negative', 'neutral', and 'positive' labels
-yelp_data1 = yelp_data[(yelp_data['stars'] == 1)].reset_index()
-yelp_data3 = yelp_data[(yelp_data['stars'] == 3)].reset_index()
-yelp_data5 = yelp_data[(yelp_data['stars'] == 5)].reset_index()
+yelp_data1 = yelp_data[(yelp_data['stars'] == 1)]
+yelp_data3 = yelp_data[(yelp_data['stars'] == 3)]
+yelp_data5 = yelp_data[(yelp_data['stars'] == 5)]
 
-num_samples = 9000
+num_samples = 500
 
 # Take all 1 star, 3 star, and 5 star rows for both text and useful columns to use as X text/train data
 X = pd.concat([

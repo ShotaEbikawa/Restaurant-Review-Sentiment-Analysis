@@ -219,7 +219,6 @@ def evaluate(y_pred, Y_test, X_test, pipeline, classifier_name):
 def plot_accuracy_graph():
     plt.figure(num=None, figsize=(12, 6))
     plt.bar(classifier_list, accuracy_list, width=0.3)
-    plt.ylim(0.5, 1.0)
     plt.xlabel('Classifiers')
     plt.ylabel('Accuracy')
 
@@ -355,6 +354,8 @@ def perform_feature_ablation(X, Y):
     useful_delta_accuracy = fp_total_score - no_useful_score
     print(f'Accuracy delta when adding useful column value feature: {useful_delta_accuracy}')
 
+    # Plot the accuracy deltas
+    # Use feature names on x axis
     features = ['tfidf', 'pos_word_count', 'neg_word_count', 'uppercase_word_count',
                 'avg_word_length', 'exclamation_count', 'useful_value']
     accuracy_deltas = [tfidf_delta_accuracy, pos_word_delta_accuracy, neg_word_delta_accuracy,
@@ -362,6 +363,7 @@ def perform_feature_ablation(X, Y):
                        exclamation_delta_accuracy, useful_delta_accuracy]
     plt.figure(num=None, figsize=(12, 6))
     plt.bar(features, accuracy_deltas, width=0.3)
+    plt.axhline(0, color='black')
     plt.xlabel('Features')
     plt.ylabel('Accuracy (delta)')
 

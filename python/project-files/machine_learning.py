@@ -1,49 +1,34 @@
 # -*- coding: utf-8
-import re
+import copy
 import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
-#import re
-#from copy import deepcopy
-#from string import punctuation
-#from random import shuffle
-#from gensim.models.word2vec import Word2Vec
-#from tqdm import tqdm 
-from sklearn import preprocessing
-#from sklearn.preprocessing import OneHotEncoder
-#from sklearn.preprocessing import LabelBinarizer
-import nltk
-import scipy.sparse
-#nltk.download('stopwords')
-#nltk.download('punkt')
-#nltk.download('wordnet')
-from nltk.stem import WordNetLemmatizer
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.naive_bayes import MultinomialNB, GaussianNB
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression, SGDClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn import svm
-from sklearn.model_selection import cross_val_score, GridSearchCV
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.pipeline import Pipeline, FeatureUnion
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
-from Extractors import ColumnSelector, PositiveWordCountExtractor, NegativeWordCountExtractor, UppercaseWordCountExtractor, AverageWordLengthExtractor, ExclamationPointCountExtractor, UsefulValueExtractor, ClfSwitcher
-from matplotlib.pyplot import figure
+from Extractors import ColumnSelector, PositiveWordCountExtractor, NegativeWordCountExtractor, UppercaseWordCountExtractor, AverageWordLengthExtractor, ExclamationPointCountExtractor, UsefulValueExtractor
+import matplotlib
+matplotlib.use("TKAgg")
+from matplotlib import pyplot as plt
 
 # Global variables
-lemmatizer = WordNetLemmatizer()
-
 decoder = {1: 'negative', 3: 'neutral', 5: 'positive'}
 
-num_samples = 10
+K = 10
+num_samples = 40
 total_iters = 10
 
 classifier_list = ['SVC', 'MNB', 'RFC', 'LR']
 accuracy_list = []
 
 pipelines = []
-best_accuracy_score = 0.0
 best_pipeline = None
+
+max_svm_iters = 1000000000
+svc = svm.LinearSVC(multi_class='crammer_singer', max_iter=max_svm_iters)
 
 
 def add_vote_columns(yelp_df):
@@ -171,43 +156,44 @@ def setup_feature_pipeline():
     # FeatureUnion all individual feature pipelines
     feature_pipeline = FeatureUnion([
         ('tfidf', tfidf_pipeline),
-        ('pos-word-count', pos_word_count_pipeline),
-        ('neg-word-count', neg_word_count_pipeline),
-        ('uppercase-word-count', uppercase_word_count_pipeline),
-        ('avg-word-length', avg_word_length_pipeline),
+        ('pos_word_count', pos_word_count_pipeline),
+        ('neg_word_count', neg_word_count_pipeline),
+        ('uppercase_word_count', uppercase_word_count_pipeline),
+        ('avg_word_length', avg_word_length_pipeline),
         ('exclamation', exclamation_pipeline),
-        ('useful-value', useful_value_pipeline)
+        ('useful_value', useful_value_pipeline)
     ])
 
     return feature_pipeline
 
 
 def k_fold_cross_validation(k, pipeline, X_train, Y_train):
+
+    # Instead of fitting the pipeline on the training data, 
+    # do cross-validation too so that you know if it's overfitting.
+    # This returns an array of values, each having the score for an individual run.
+    # k=10 implies 10-fold cross validation
     scores = cross_val_score(
         pipeline,
         X_train,
         Y_train,
         cv=k,
-        scoring='f1_micro'
+        scoring='accuracy'
     )
-    print(f'{k}-fold cross validation scores:')
-    print(scores)
+    #    print(f'{k}-fold cross validation scores:')
+    #    print(scores)
     return scores
 
 
 def make_prediction(X, Y, pipeline, classifier_name):
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.25, random_state=0)
 
-    # Instead of fitting the pipeline on the training data, 
-    # do cross-validation too so that you know if it's overfitting.
-    # This returns an array of values, each having the score for an individual run.
-    # k=10 implies 10-fold cross validation
     #scores = k_fold_cross_validation(10, pipeline, X_train, Y_train)
 
     pipeline.fit(X_train, Y_train.values.ravel())
-    
+
     y_pred = pipeline.predict(X_test)
-    
+
     evaluate(y_pred, Y_test, X_test, pipeline, classifier_name)
 
 
@@ -228,18 +214,20 @@ def evaluate(y_pred, Y_test, X_test, pipeline, classifier_name):
         y_index += 1
         if y_index >= total_iters:
             break
-        
-        
+
+
 def plot_accuracy_graph():
-    figure(num=None, figsize=(12, 6))
+    plt.figure(num=None, figsize=(12, 6))
     plt.scatter(classifier_list, accuracy_list)
     plt.xlabel('Classifiers')
     plt.ylabel('Accuracy')
 
 
 def predict_zomato_reviews():
+    global best_pipeline
     data = pd.read_json('src/restaurant-review-zomato.json')
 
+    # Convert json formatted zomato data into dataframe with text and useful columns
     review_rows = []
     useful_rows = []
     for index, row in data.iterrows():
@@ -253,13 +241,12 @@ def predict_zomato_reviews():
 
     reviews_df = pd.concat([reviews_df, useful_df], axis=1, join='inner')
 
-    max_score = 0
-    for pipeline, acc_score in pipelines:
-        if acc_score > max_score:
-            best_pipeline = pipeline
+    # Use the best performing classifier/pipeline to predict the zomato restaurant review sentiment label
+    best_pipeline = max(pipelines, key=lambda item:item[1])[0]
 
     y_results = best_pipeline.predict(reviews_df)
 
+    # Print a few results for demonstration purposes
     y_index = 0
     print(f'Showing {total_iters} results of previously unseen reviews and predicted output label...\n')
     for index, row in reviews_df.iterrows():
@@ -267,6 +254,115 @@ def predict_zomato_reviews():
         y_index += 1
         if y_index >= total_iters:
             break
+
+
+def perform_feature_ablation(X, Y):
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.25, random_state=0)
+
+    # Perform 10-fold cross validation and compute the average accuracy score
+    fp_total = copy.deepcopy(feature_pipeline)
+    fp_total_pipeline = Pipeline([
+        ('features', fp_total),
+        ('classifier', svc)
+    ])
+    fp_total_scores = k_fold_cross_validation(K, fp_total_pipeline, X_train, Y_train.values.ravel())
+    fp_total_score = sum(fp_total_scores) / K
+
+    # Drop tfidf feature and perform 10-fold CV, 
+    # then compute average accuracy score, 
+    # then compare with total average accuracy score when tfidf feature was included (difference)
+    fp_no_tfidf = copy.deepcopy(feature_pipeline)
+    fp_no_tfidf.set_params(tfidf='drop')
+    fp_no_tfidf_pipeline = Pipeline([
+        ('features', fp_no_tfidf),
+        ('classifier', svc)
+    ])
+    no_tfidf_scores = k_fold_cross_validation(K, fp_no_tfidf_pipeline, X_train, Y_train.values.ravel())
+    no_tfidf_score = sum(no_tfidf_scores) / K
+    tfidf_delta_accuracy = fp_total_score - no_tfidf_score
+    print(f'Accuracy delta when adding tfidf feature: {tfidf_delta_accuracy}')
+
+    # Repeate the same procedure, now taking out the positive word count feature
+    fp_no_pos_word = copy.deepcopy(feature_pipeline)
+    fp_no_pos_word.set_params(pos_word_count='drop')
+    fp_no_pos_word_pipeline = Pipeline([
+        ('features', fp_no_pos_word),
+        ('classifier', svc)
+    ])
+    no_pos_word_scores = k_fold_cross_validation(K, fp_no_pos_word_pipeline, X_train, Y_train.values.ravel())
+    no_pos_word_score = sum(no_pos_word_scores) / K
+    pos_word_delta_accuracy = fp_total_score - no_pos_word_score
+    print(f'Accuracy delta when adding positive word count feature: {pos_word_delta_accuracy}')
+
+    # Repeate the same procedure, now taking out the negative word count feature
+    fp_no_neg_word = copy.deepcopy(feature_pipeline)
+    fp_no_neg_word.set_params(neg_word_count='drop')
+    fp_no_neg_word_pipeline = Pipeline([
+        ('features', fp_no_neg_word),
+        ('classifier', svc)
+    ])
+    no_neg_word_scores = k_fold_cross_validation(K, fp_no_neg_word_pipeline, X_train, Y_train.values.ravel())
+    no_neg_word_score = sum(no_neg_word_scores) / K
+    neg_word_delta_accuracy = fp_total_score - no_neg_word_score
+    print(f'Accuracy delta when adding negative word count feature: {neg_word_delta_accuracy}')
+
+    # Repeate the same procedure, now taking out the uppercase word count feature
+    fp_no_uppercase_word = copy.deepcopy(feature_pipeline)
+    fp_no_uppercase_word.set_params(uppercase_word_count='drop')
+    fp_no_uppercase_word_pipeline = Pipeline([
+        ('features', fp_no_uppercase_word),
+        ('classifier', svc)
+    ])
+    no_uppercase_word_scores = k_fold_cross_validation(K, fp_no_uppercase_word_pipeline, X_train, Y_train.values.ravel())
+    no_uppercase_word_score = sum(no_uppercase_word_scores) / K
+    uppercase_word_delta_accuracy = fp_total_score - no_uppercase_word_score
+    print(f'Accuracy delta when adding uppercase word count feature: {uppercase_word_delta_accuracy}')
+
+    # Repeate the same procedure, now taking out the average word length feature
+    fp_no_avg_word = copy.deepcopy(feature_pipeline)
+    fp_no_avg_word.set_params(avg_word_length='drop')
+    fp_no_avg_word_pipeline = Pipeline([
+        ('features', fp_no_avg_word),
+        ('classifier', svc)
+    ])
+    no_avg_word_scores = k_fold_cross_validation(K, fp_no_avg_word_pipeline, X_train, Y_train.values.ravel())
+    no_avg_word_score = sum(no_avg_word_scores) / K
+    avg_word_delta_accuracy = fp_total_score - no_avg_word_score
+    print(f'Accuracy delta when adding average word length feature: {avg_word_delta_accuracy}')
+
+    # Repeate the same procedure, now taking out the exclamation point count feature
+    fp_no_exclamation = copy.deepcopy(feature_pipeline)
+    fp_no_exclamation.set_params(exclamation='drop')
+    fp_no_exclamation_pipeline = Pipeline([
+        ('features', fp_no_exclamation),
+        ('classifier', svc)
+    ])
+    no_exclamation_scores = k_fold_cross_validation(K, fp_no_exclamation_pipeline, X_train, Y_train.values.ravel())
+    no_exclamation_score = sum(no_exclamation_scores) / K
+    exclamation_delta_accuracy = fp_total_score - no_exclamation_score
+    print(f'Accuracy delta when adding exclamation point count feature: {exclamation_delta_accuracy}')
+
+    # Repeate the same procedure, now taking out the useful column value feature
+    fp_no_useful = copy.deepcopy(feature_pipeline)
+    fp_no_useful.set_params(useful_value='drop')
+    fp_no_useful_pipeline = Pipeline([
+        ('features', fp_no_useful),
+        ('classifier', svc)
+    ])
+    no_useful_scores = k_fold_cross_validation(K, fp_no_useful_pipeline, X_train, Y_train.values.ravel())
+    no_useful_score = sum(no_useful_scores) / K
+    useful_delta_accuracy = fp_total_score - no_useful_score
+    print(f'Accuracy delta when adding useful column value feature: {useful_delta_accuracy}')
+
+    features = ['tfidf', 'pos_word_count', 'neg_word_count', 'uppercase_word_count',
+                'avg_word_length', 'exclamation_count', 'useful_value']
+    accuracy_deltas = [tfidf_delta_accuracy, pos_word_delta_accuracy, neg_word_delta_accuracy,
+                       uppercase_word_delta_accuracy, avg_word_delta_accuracy,
+                       exclamation_delta_accuracy, useful_delta_accuracy]
+    plt.figure(num=None, figsize=(12, 6))
+    plt.scatter(features, accuracy_deltas)
+    plt.xlabel('Features')
+    plt.ylabel('Accuracy (delta)')
 
 
 # Read in json formatted yelp training set review data into a DataFrame
@@ -304,7 +400,7 @@ feature_pipeline = setup_feature_pipeline()
 # A dictionary of classifiers with their name as key 
 # We will use the dict to make predictions for our data and record the results for each classifier
 classifier_dict = {
-    'Support Vector Machine (SVC)': svm.LinearSVC(multi_class='crammer_singer'),
+    'Support Vector Machine (SVC)': svm.LinearSVC(multi_class='crammer_singer', max_iter=max_svm_iters),
     'Multinomial Naive Bayes': MultinomialNB(),
     'Random Forest Classifier': RandomForestClassifier(),
     'Logistic Regression': LogisticRegression()
@@ -318,9 +414,11 @@ for name, classifier in classifier_dict.items():
     ])
 
     make_prediction(X, Y, pipeline, name)
-    
+
 # Plot graph of classifiers and accuracy on x,y axis
 plot_accuracy_graph()
 
 # Predict zomato restaurant reviews using our best (most accurate) feature/classifier pipeline
 predict_zomato_reviews()
+
+perform_feature_ablation(X, Y)

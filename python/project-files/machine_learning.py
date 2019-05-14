@@ -218,7 +218,8 @@ def evaluate(y_pred, Y_test, X_test, pipeline, classifier_name):
 
 def plot_accuracy_graph():
     plt.figure(num=None, figsize=(12, 6))
-    plt.scatter(classifier_list, accuracy_list)
+    plt.bar(classifier_list, accuracy_list, width=0.3)
+    plt.ylim(0.5, 1.0)
     plt.xlabel('Classifiers')
     plt.ylabel('Accuracy')
 
@@ -360,7 +361,7 @@ def perform_feature_ablation(X, Y):
                        uppercase_word_delta_accuracy, avg_word_delta_accuracy,
                        exclamation_delta_accuracy, useful_delta_accuracy]
     plt.figure(num=None, figsize=(12, 6))
-    plt.scatter(features, accuracy_deltas)
+    plt.bar(features, accuracy_deltas, width=0.3)
     plt.xlabel('Features')
     plt.ylabel('Accuracy (delta)')
 

@@ -1,21 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Yelp Fusion API code sample.
-This program demonstrates the capability of the Yelp Fusion API
-by using the Search API to query for businesses by a search term and location,
-and the Business API to query additional information about the top result
-from the search query.
-Please refer to http://www.yelp.com/developers/v3/documentation for the API
-documentation.
-This program requires the Python requests library, which you can install via:
-`pip install -r requirements.txt`.
-Sample usage of the program:
-`python sample.py --term="bars" --location="San Francisco, CA"`
+Created on Mon Mar 25 10:54:24 2019
+
+@author: shotaebikawa
 """
 from __future__ import print_function
 
-import restaurant
-from restaurant import RestaurantReview
+import restaurant as res
 import argparse
 import json
 import pprint
@@ -113,7 +104,6 @@ def main():
     offset = 0
     while offset < 1000:
         rest_json = search(API_KEY, DEFAULT_CATEGORY, DEFAULT_LOCATION, SEARCH_LIMIT, offset)
-        #time.sleep(5)
         parse(rest_json)
         offset += 50
     print_json(restaurants)
@@ -124,17 +114,16 @@ def parse(rest_json):
         for bus in businesses:
             rev_list = []
             reviews = get_reviews(API_KEY, bus.get('id')).get('reviews')
-            #time.sleep(3)
             if (reviews):
                 for review in reviews:
-                    rev = restaurant.RestaurantReview(
+                    rev = res.RestaurantReview(
                         review.get('rating'),
                         review.get('text')
                     )
                     rev_list.append(rev)
             else:
                 pass
-            restaurant = restaurant.Restaurant(
+            restaurant = res.Restaurant(
                 bus.get('id'),
                 bus.get('name'),
                 bus.get('rating'),
@@ -142,19 +131,12 @@ def parse(rest_json):
                 rev_list
             )
             restaurants.append(restaurant)
-            print(restaurant.id)
-            print(restaurant.name)
-            print(restaurant.rating)
-            print(restaurant.price)
-            for rev in rev_list:
-                print(rev.rating)
-                print(rev.text)
     else:
         pass
 
 
 def serialize_reviews(obj):
-   if isinstance(obj, RestaurantReview):
+   if isinstance(obj, res.RestaurantReview):
        serial = obj.__dict__
        return serial
    else:
@@ -162,7 +144,7 @@ def serialize_reviews(obj):
 
 
 def print_json(restaurants):
-    with open("restaurant-review-yelp.json", "w+",encoding="utf-8") as fp:
+    with open("../datasets/restaurant-review-yelp-2.json", "w+",encoding="utf-8") as fp:
         for restaurant in restaurants:
             json.dump(restaurant.__dict__, fp, default=serialize_reviews)
             fp.write(",")

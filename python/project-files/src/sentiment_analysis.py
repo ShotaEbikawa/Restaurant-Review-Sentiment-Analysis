@@ -1,4 +1,9 @@
 # -*- coding: utf-8
+"""
+Created on Sat Apr 6 18:32:12 2019
+
+@author: anastasiosgrigoriou
+"""
 import copy
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -180,15 +185,11 @@ def k_fold_cross_validation(k, pipeline, X_train, Y_train):
         cv=k,
         scoring='accuracy'
     )
-    #    print(f'{k}-fold cross validation scores:')
-    #    print(scores)
     return scores
 
 
 def make_prediction(X, Y, pipeline, classifier_name):
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.25, random_state=0)
-
-    #scores = k_fold_cross_validation(10, pipeline, X_train, Y_train)
 
     pipeline.fit(X_train, Y_train.values.ravel())
 
@@ -268,8 +269,8 @@ def perform_feature_ablation(X, Y):
     fp_total_scores = k_fold_cross_validation(K, fp_total_pipeline, X_train, Y_train.values.ravel())
     fp_total_score = sum(fp_total_scores) / K
 
-    # Drop tfidf feature and perform 10-fold CV, 
-    # then compute average accuracy score, 
+    # Drop tfidf feature from original feature pipeline,
+    # then perform 10-fold cross validation to get accuracy test run scores and compute average accuracy score,
     # then compare with total average accuracy score when tfidf feature was included (difference)
     fp_no_tfidf = copy.deepcopy(feature_pipeline)
     fp_no_tfidf.set_params(tfidf='drop')
@@ -282,7 +283,7 @@ def perform_feature_ablation(X, Y):
     tfidf_delta_accuracy = fp_total_score - no_tfidf_score
     print(f'Accuracy delta when adding tfidf feature: {tfidf_delta_accuracy}')
 
-    # Repeate the same procedure, now taking out the positive word count feature
+    # Repeat the same procedure, now taking out the positive word count feature
     fp_no_pos_word = copy.deepcopy(feature_pipeline)
     fp_no_pos_word.set_params(pos_word_count='drop')
     fp_no_pos_word_pipeline = Pipeline([
@@ -294,7 +295,7 @@ def perform_feature_ablation(X, Y):
     pos_word_delta_accuracy = fp_total_score - no_pos_word_score
     print(f'Accuracy delta when adding positive word count feature: {pos_word_delta_accuracy}')
 
-    # Repeate the same procedure, now taking out the negative word count feature
+    # Repeat the same procedure, now taking out the negative word count feature
     fp_no_neg_word = copy.deepcopy(feature_pipeline)
     fp_no_neg_word.set_params(neg_word_count='drop')
     fp_no_neg_word_pipeline = Pipeline([
@@ -306,7 +307,7 @@ def perform_feature_ablation(X, Y):
     neg_word_delta_accuracy = fp_total_score - no_neg_word_score
     print(f'Accuracy delta when adding negative word count feature: {neg_word_delta_accuracy}')
 
-    # Repeate the same procedure, now taking out the uppercase word count feature
+    # Repeat the same procedure, now taking out the uppercase word count feature
     fp_no_uppercase_word = copy.deepcopy(feature_pipeline)
     fp_no_uppercase_word.set_params(uppercase_word_count='drop')
     fp_no_uppercase_word_pipeline = Pipeline([
@@ -318,7 +319,7 @@ def perform_feature_ablation(X, Y):
     uppercase_word_delta_accuracy = fp_total_score - no_uppercase_word_score
     print(f'Accuracy delta when adding uppercase word count feature: {uppercase_word_delta_accuracy}')
 
-    # Repeate the same procedure, now taking out the average word length feature
+    # Repeat the same procedure, now taking out the average word length feature
     fp_no_avg_word = copy.deepcopy(feature_pipeline)
     fp_no_avg_word.set_params(avg_word_length='drop')
     fp_no_avg_word_pipeline = Pipeline([
@@ -330,7 +331,7 @@ def perform_feature_ablation(X, Y):
     avg_word_delta_accuracy = fp_total_score - no_avg_word_score
     print(f'Accuracy delta when adding average word length feature: {avg_word_delta_accuracy}')
 
-    # Repeate the same procedure, now taking out the exclamation point count feature
+    # Repeat the same procedure, now taking out the exclamation point count feature
     fp_no_exclamation = copy.deepcopy(feature_pipeline)
     fp_no_exclamation.set_params(exclamation='drop')
     fp_no_exclamation_pipeline = Pipeline([
@@ -342,7 +343,7 @@ def perform_feature_ablation(X, Y):
     exclamation_delta_accuracy = fp_total_score - no_exclamation_score
     print(f'Accuracy delta when adding exclamation point count feature: {exclamation_delta_accuracy}')
 
-    # Repeate the same procedure, now taking out the useful column value feature
+    # Repeat the same procedure, now taking out the useful column value feature
     fp_no_useful = copy.deepcopy(feature_pipeline)
     fp_no_useful.set_params(useful_value='drop')
     fp_no_useful_pipeline = Pipeline([
@@ -355,7 +356,7 @@ def perform_feature_ablation(X, Y):
     print(f'Accuracy delta when adding useful column value feature: {useful_delta_accuracy}')
 
     # Plot the accuracy deltas
-    # Use feature names on x axis
+    # Use feature names on x axis, accuracy deltas on y axis
     features = ['tfidf', 'pos_word_count', 'neg_word_count', 'uppercase_word_count',
                 'avg_word_length', 'exclamation_count', 'useful_value']
     accuracy_deltas = [tfidf_delta_accuracy, pos_word_delta_accuracy, neg_word_delta_accuracy,
@@ -368,6 +369,9 @@ def perform_feature_ablation(X, Y):
     plt.ylabel('Accuracy (delta)')
 
 
+"""
+BEGINNING EXECUTION OF PROGRAM
+"""
 # Read in json formatted yelp training set review data into a DataFrame
 yelp_data = pd.read_json('../datasets/yelp_training_set_review.json', lines=True)
 
@@ -424,4 +428,6 @@ plot_accuracy_graph()
 # Predict zomato restaurant reviews using our best (most accurate) feature/classifier pipeline
 predict_zomato_reviews()
 
+# Perform feature ablation for all features:
+# Compute accuracy after dropping each feature one by one, then compare the accuracy delta
 perform_feature_ablation(X, Y)

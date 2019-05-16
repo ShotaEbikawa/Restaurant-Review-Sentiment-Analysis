@@ -15,6 +15,7 @@ from sklearn.pipeline import Pipeline
 from extractors import ColumnSelector, ClfSwitcher
 from matplotlib.pyplot import figure
     
+restaurant_category = {0: 'Service', 1: 'Food Quality'}
         
 def evaluate(y_pred, Y_test):
     print('Accuracy:\n', accuracy_score(Y_test, y_pred))
@@ -60,6 +61,7 @@ def get_class_distribution(Y):
     return class_dist
 
 def convert_labels(violation_reviews):
+    pd.options.mode.chained_assignment = None 
     for i in range(1, 67):
         if i <= 9:
             #0 refers to service
@@ -115,7 +117,31 @@ def gridsearch_clf(grid, grid_dict, X_train, Y_train, ):
     return best_gs
     
  
-    
+def predict_zomato_reviews(best_gs):
+    data = pd.read_json('../datasets/restaurant-review-zomato.json')
+
+    # Convert json formatted zomato data into dataframe with text and useful columns
+    review_rows = []
+    useful_rows = []
+    for index, row in data.iterrows():
+        for review in row['reviews']:
+            if review and review['text']:
+                review_rows.append(review['text'])
+                useful_rows.append(0)
+
+    review_rows = pd.DataFrame(review_rows)
+    review_rows.columns = ['text']
+
+    y_results = best_gs.predict(review_rows)
+
+    # Print a few results for demonstration purposes
+    y_index = 0
+    print(f'Showing {total_iters} results of previously unseen reviews and predicted output label...\n')
+    for index, row in review_rows.iterrows():
+        print(f'Review text: \n{row["text"]} \n\nPredicted: \n{restaurant_category[y_results[y_index]]}\n')
+        y_index += 1
+        if y_index >= total_iters:
+            break  
 
 
 
@@ -212,9 +238,7 @@ grid_params_rf = [{'clf__estimator': [rf],
 #list containing parameters for Logistic Regression and TFIDF
 grid_params_lr = [{'clf__estimator': [lr],
                    'tfidf__max_df': (0.25, 0.5, 0.75, 1.0),
-                   'clf__estimator__solver': ['liblinear','sag', 'saga'],
-                   'clf__estimator__C': [100, 1000],
-                   
+                   'clf__estimator__solver': ['liblinear','sag', 'saga'],                
                    }]
 
 
@@ -253,7 +277,7 @@ grid_dict = {0: 'Support Vector Machine (SVC)', 1: 'Multinomial Naive Bayes', 2:
 
 
 # Iterate through grids
-gs = gridsearch_clf(grids, grid_dict, X_train, Y_train,)
+best_gs = gridsearch_clf(grids, grid_dict, X_train, Y_train,)
 
 #plot the graph 
 
@@ -269,3 +293,5 @@ category = best_gs.predict(X2)
 category = pd.DataFrame(data=category, columns=['category'])
 new_yelp_data = pd.concat([yelp_data, category], axis = 1, join = 'inner')
 
+
+predict_zomato_reviews(best_gs)

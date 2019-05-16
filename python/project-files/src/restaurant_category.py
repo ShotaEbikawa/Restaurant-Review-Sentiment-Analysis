@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-# -*- coding: utf-8
+"""
+Created on Sat Apr 27 13:22:57 2019
+
+@author: shotaebikawa
+"""
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.naive_bayes import GaussianNB
@@ -84,7 +88,7 @@ def convert_labels(violation_reviews):
    
 
 def gridsearch_clf(grid, grid_dict, X_train, Y_train, ):
-    # These two lists will be used for plotting the graph lateron
+    # These two lists will be used for plotting the graph later on
     classifier_list = ['SVC', 'MNB', 'RFC', 'LR']
     accuracy_list = []
 

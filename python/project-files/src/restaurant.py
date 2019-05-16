@@ -1,3 +1,8 @@
+"""
+Created on Mon Mar 25 10:54:24 2019
+
+@author: anastasiosgrigoriou
+"""
 class Restaurant(object):
     """
     Args:

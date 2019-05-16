@@ -1,7 +1,11 @@
+"""
+Created on Sun Mar 31 10:54:24 2019
+
+@author: anastasiosgrigoriou
+"""
 from __future__ import print_function
 
-import restaurant
-from restaurant import RestaurantReview
+import restaurant as res
 import argparse
 import json
 import pprint
@@ -203,7 +207,7 @@ def z_parse(z, rest_json):
             reviews = z.get_restaurant_reviews(res_id).get('user_reviews')
             if reviews:
                 for review in reviews:
-                    rev = restaurant.RestaurantReview(
+                    rev = res.RestaurantReview(
                         review.get('review').get('rating'),
                         review.get('review').get('review_text')
                     )
@@ -211,7 +215,7 @@ def z_parse(z, rest_json):
             else:
                 pass
 
-            restaurant = restaurant.Restaurant(
+            restaurant = res.Restaurant(
                 res.get('id'),
                 res.get('name'),
                 float(res.get('user_rating').get('aggregate_rating')),
@@ -224,7 +228,7 @@ def z_parse(z, rest_json):
 
 
 def serialize_reviews(obj):
-    if isinstance(obj, RestaurantReview):
+    if isinstance(obj, res.RestaurantReview):
         serial = obj.__dict__
         return serial
     else:
@@ -232,7 +236,7 @@ def serialize_reviews(obj):
 
 
 def print_json(rests):
-    with open("restaurant-review-zomato-5.json", "w+", encoding="utf-8") as fp:
+    with open("../datasets/restaurant-review-zomato-2.json", "w+", encoding="utf-8") as fp:
         for restaurant in rests:
             json.dump(restaurant.__dict__, fp, default=serialize_reviews)
             fp.write(",")

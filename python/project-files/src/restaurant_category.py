@@ -21,11 +21,18 @@ from matplotlib.pyplot import figure
     
 restaurant_category = {0: 'Service', 1: 'Food Quality'}
         
-def evaluate(y_pred, Y_test):
+def evaluate(y_pred, X_test, Y_test):
     print('Accuracy:\n', accuracy_score(Y_test, y_pred))
     print('Confusion Matrix:\n', confusion_matrix(Y_test, y_pred))
     print(classification_report(Y_test, y_pred))
-    
+        # Iterate through X_test total_iters times, printing the review text and predicted output label
+#    y_index = 0
+#    print(f'Showing {10} results of review text and predicted output label...\n')
+#    for index, row in X_test.iterrows():
+#        print(f'Review text: \n{row["text"]} \n\nPredicted: \n{y_pred[y_index]}\n')
+#        y_index += 1
+#        if y_index >= 10:
+#            break
     
 def get_majority_classifier(Y):
     classifiers = {}
@@ -105,7 +112,7 @@ def gridsearch_clf(grid, grid_dict, X_train, Y_train, ):
         print('Best params: %s' % gs.best_params_)
         print('Best training accuracy: %.3f' % gs.best_score_)
         y_pred = gs.predict(X_test)
-        evaluate(y_pred, Y_test)
+        evaluate(y_pred, X_test, Y_test)
         accuracy_list.append(accuracy_score(Y_test, y_pred))
         print('Test set accuracy score for best params: %.3f ' % accuracy_score(Y_test, y_pred))
         if accuracy_score(Y_test, y_pred) > best_acc:
@@ -140,18 +147,16 @@ def predict_zomato_reviews(best_gs):
 
     # Print a few results for demonstration purposes
     y_index = 0
-    print(f'Showing {total_iters} results of previously unseen reviews and predicted output label...\n')
+    print(f'Showing 10 results of previously unseen reviews and predicted output label...\n')
     for index, row in review_rows.iterrows():
         print(f'Review text: \n{row["text"]} \n\nPredicted: \n{restaurant_category[y_results[y_index]]}\n')
         y_index += 1
-        if y_index >= total_iters:
+        if y_index >= 10:
             break  
 
 
 
-    
-violation_code = pd.read_csv('../datasets/violation-codes-key.csv')
-vio_num = violation_code.iloc[:, 0:1]
+
 violation_reviews = pd.read_csv('../datasets/restaurant-violations.csv')
 violation_reviews = violation_reviews[violation_reviews['Violation_Number'] != 'None']
 violation_reviews = violation_reviews[violation_reviews['Violation_Number'] != '23']
@@ -190,6 +195,7 @@ tfidf = TfidfVectorizer(ngram_range=(1,2), stop_words='english',
 #------------------------------------------------------------------------------------------------
 multinomial = MultinomialNB()
 gaussian = GaussianNB()
+sdgc = SGDClassifier()
 svc = svm.LinearSVC(multi_class='ovr')
 rf = RandomForestClassifier()
 lr = LogisticRegression()
@@ -230,7 +236,6 @@ grid_params_svm = [{'clf__estimator': [svc], # SVM if hinge loss / logreg if log
 # list containing parameters for Multinomial Naive Bayes and TFIDF
 grid_params_mnb = [{'clf__estimator': [multinomial],
                     'tfidf__max_df': (0.25, 0.5, 0.75, 1.0),
-                    'clf__estimator__alpha': (1e-2, 1e-3, 1e-1),
                     }]
   
     
@@ -241,8 +246,7 @@ grid_params_rf = [{'clf__estimator': [rf],
 
 #list containing parameters for Logistic Regression and TFIDF
 grid_params_lr = [{'clf__estimator': [lr],
-                   'tfidf__max_df': (0.25, 0.5, 0.75, 1.0),
-                   'clf__estimator__solver': ['liblinear','sag', 'saga'],                
+                   'tfidf__max_df': (0.25, 0.5, 0.75, 1.0),           
                    }]
 
 
@@ -291,11 +295,13 @@ best_gs = gridsearch_clf(grids, grid_dict, X_train, Y_train,)
 # NOW I'M GOING TO PREDICT THE YELP_DATA WITH THE PIPELINE
 # =============================================================================
 
-yelp_data = pd.read_json('../datasets/yelp_training_set_review.json', lines=True)
-X2 = yelp_data.iloc[1:, 4:5]
-category = best_gs.predict(X2)
-category = pd.DataFrame(data=category, columns=['category'])
-new_yelp_data = pd.concat([yelp_data, category], axis = 1, join = 'inner')
+#yelp_data = pd.read_json('../datasets/yelp_training_set_review.json', lines=True)
+#X2 = yelp_data.iloc[1:, 4:5]
+#category = best_gs.predict(X2)
+#category = pd.DataFrame(data=category, columns=['category'])
+#new_yelp_data = pd.concat([yelp_data, category], axis = 1, join = 'inner')
 
-
+# =============================================================================
+# PREDICTING ZOMATO TEXT REVIEWS
+# =============================================================================
 predict_zomato_reviews(best_gs)

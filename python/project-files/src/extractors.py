@@ -150,7 +150,7 @@ class ClfSwitcher(BaseEstimator):
     """
     def __init__(
         self, 
-        estimator=SGDClassifier(),
+        estimator=None
     ):
         self.estimator = estimator
     

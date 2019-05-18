@@ -2,6 +2,7 @@
 """
 Created on Sat Apr 27 13:22:57 2019
 
+@author: anastasiosgrigoriou
 @author: shotaebikawa
 """
 import pandas as pd
@@ -18,6 +19,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.pipeline import Pipeline
 from extractors import ColumnSelector, ClfSwitcher
 from matplotlib.pyplot import figure
+
     
 restaurant_category = {0: 'Service', 1: 'Food Quality'}
         
@@ -195,8 +197,7 @@ tfidf = TfidfVectorizer(ngram_range=(1,2), stop_words='english',
 #------------------------------------------------------------------------------------------------
 multinomial = MultinomialNB()
 gaussian = GaussianNB()
-sdgc = SGDClassifier()
-svc = svm.LinearSVC(multi_class='ovr')
+svc = svm.LinearSVC()
 rf = RandomForestClassifier()
 lr = LogisticRegression()
 
@@ -231,22 +232,26 @@ The most useful parameter, in my opinion, was tfidf__max_df
 # list containing parameters for Linear Support Vector Machine and TFIDF    
 grid_params_svm = [{'clf__estimator': [svc], # SVM if hinge loss / logreg if log loss
                    'tfidf__max_df': (0.25, 0.5, 0.75, 1.0),
+                   'tfidf__ngram_range': [(1,1), (1,2), (2,3)]
                    }]
 
 # list containing parameters for Multinomial Naive Bayes and TFIDF
 grid_params_mnb = [{'clf__estimator': [multinomial],
                     'tfidf__max_df': (0.25, 0.5, 0.75, 1.0),
+                    'tfidf__ngram_range': [(1,1), (1,2), (2,3)]
                     }]
   
     
 # list containing parameters for Random Forest Classifier and TFIDF
 grid_params_rf = [{'clf__estimator': [rf],
                    'tfidf__max_df': (0.25, 0.5, 0.75, 1.0),
+                   'tfidf__ngram_range': [(1,1), (1,2), (2,3)]
                    }]
 
 #list containing parameters for Logistic Regression and TFIDF
 grid_params_lr = [{'clf__estimator': [lr],
-                   'tfidf__max_df': (0.25, 0.5, 0.75, 1.0),           
+                   'tfidf__max_df': (0.25, 0.5, 0.75, 1.0),   
+                   'tfidf__ngram_range': [(1,1), (1,2), (2,3)]
                    }]
 
 

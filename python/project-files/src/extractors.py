@@ -4,6 +4,7 @@
 Created on Sat Apr 20 15:48:41 2019
 
 @author: anastasiosgrigoriou
+@author: shotaebikawa
 """
 
 from sklearn.base import BaseEstimator, TransformerMixin

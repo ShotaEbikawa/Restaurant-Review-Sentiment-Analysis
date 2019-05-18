@@ -3,6 +3,7 @@
 Created on Sat Apr 6 18:32:12 2019
 
 @author: anastasiosgrigoriou
+@author: shotaebikawa
 """
 import copy
 import pandas as pd

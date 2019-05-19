@@ -193,6 +193,9 @@ def make_prediction(X, Y, pipeline, classifier_name):
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.25, random_state=0)
 
     pipeline.fit(X_train, Y_train.values.ravel())
+    
+    scores = k_fold_cross_validation(K, pipeline, X_train, Y_train)
+    print(f'10-fold cross validation scores for {classifier_name}: {scores}')
 
     y_pred = pipeline.predict(X_test)
 

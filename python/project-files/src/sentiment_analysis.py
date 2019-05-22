@@ -183,7 +183,8 @@ def k_fold_cross_validation(k, pipeline, X_train, Y_train):
         X_train,
         Y_train,
         cv=k,
-        scoring='accuracy'
+        scoring='accuracy',
+        n_jobs=-1
     )
     return scores
 

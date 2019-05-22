@@ -17,14 +17,13 @@ from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 from extractors import ColumnSelector, PositiveWordCountExtractor, NegativeWordCountExtractor, UppercaseWordCountExtractor, AverageWordLengthExtractor, ExclamationPointCountExtractor, UsefulValueExtractor
 import matplotlib
-matplotlib.use("TKAgg")
 from matplotlib import pyplot as plt
 
 # Global variables
 decoder = {1: 'negative', 3: 'neutral', 5: 'positive'}
 
 K = 10
-num_samples = 40
+num_samples = 100
 total_iters = 10
 
 classifier_list = ['SVC', 'MNB', 'RFC', 'LR']
@@ -194,7 +193,7 @@ def make_prediction(X, Y, pipeline, classifier_name):
 
     pipeline.fit(X_train, Y_train.values.ravel())
     
-    scores = k_fold_cross_validation(K, pipeline, X_train, Y_train)
+    scores = k_fold_cross_validation(K, pipeline, X_train, Y_train.values.ravel())
     print(f'10-fold cross validation scores for {classifier_name}: {scores}')
 
     y_pred = pipeline.predict(X_test)
@@ -377,7 +376,7 @@ def perform_feature_ablation(X, Y):
 BEGINNING EXECUTION OF PROGRAM
 """
 # Read in json formatted yelp training set review data into a DataFrame
-yelp_data = pd.read_json('../datasets/yelp_training_set_review.json', lines=True)
+yelp_data = pd.read_json('../datasets/yelp_training_set_review_small.json', lines=True)
 
 # Add 'funny', 'useful', and 'cool' as separate columns in yelp_data DataFrame
 yelp_data = add_vote_columns(yelp_data)
@@ -434,4 +433,4 @@ predict_zomato_reviews()
 
 # Perform feature ablation for all features:
 # Compute accuracy after dropping each feature one by one, then compare the accuracy delta
-perform_feature_ablation(X, Y)
+#perform_feature_ablation(X, Y)

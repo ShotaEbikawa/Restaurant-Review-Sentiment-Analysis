@@ -434,4 +434,4 @@ predict_zomato_reviews()
 
 # Perform feature ablation for all features:
 # Compute accuracy after dropping each feature one by one, then compare the accuracy delta
-#perform_feature_ablation(X, Y)
+perform_feature_ablation(X, Y)
